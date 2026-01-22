@@ -18,22 +18,22 @@ These workflow templates work on **n8n Cloud** (and self-hosted n8n) without ins
    - **Header Value**: `Bearer YOUR_API_KEY_HERE`
 4. Save the credential
 
-> **Note:** The workflow template references a credential named "Everyrow API". If you name your credential exactly this, all HTTP nodes will automatically use it when you import the workflow.
-
 ### Step 2: Import the Workflow
 
 1. In n8n, click **Add workflow** → **Import from file**
 2. Select `everyrow-rank-workflow.json`
 3. The workflow will be imported
 
-### Step 3: Update API URL
+### Step 3: Connect Credentials to Nodes
 
-The workflow uses `{{ $credentials.apiUrl }}` but Header Auth doesn't support custom fields. You need to:
+After importing, you need to connect your credential to each HTTP Request node:
 
-1. Open each HTTP Request node
-2. Replace `{{ $credentials.apiUrl }}` with `https://engine.futuresearch.ai`
+1. Click on **Create Session** node
+2. In the **Credential to connect with** dropdown, select your "Everyrow API" credential
+3. Repeat for all HTTP Request nodes: **Create Input Artifact**, **Poll Artifact Status**, **Re-poll Artifact**, **Submit Rank Task**, **Poll Rank Status**, **Re-poll Rank**, **Fetch Results**
 
-Or use the simplified version below.
+> **Tip:** You only need to do this once after importing. The credentials will be saved with your workflow.
+
 
 ---
 

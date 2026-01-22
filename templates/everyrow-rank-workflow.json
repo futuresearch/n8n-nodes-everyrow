@@ -7,7 +7,10 @@
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -17,7 +20,10 @@
       "name": "Sample Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
@@ -34,12 +40,10 @@
       "name": "Create Session",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -56,12 +60,10 @@
       "name": "Create Input Artifact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -75,12 +77,10 @@
       "name": "Poll Artifact Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
@@ -109,7 +109,10 @@
       "name": "Artifact Ready?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 300]
+      "position": [
+        1340,
+        300
+      ]
     },
     {
       "parameters": {
@@ -120,7 +123,10 @@
       "name": "Wait 2s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1340, 480]
+      "position": [
+        1340,
+        480
+      ]
     },
     {
       "parameters": {
@@ -134,12 +140,10 @@
       "name": "Re-poll Artifact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 480],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        1540,
+        480
+      ]
     },
     {
       "parameters": {
@@ -156,12 +160,10 @@
       "name": "Submit Rank Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        1560,
+        300
+      ]
     },
     {
       "parameters": {
@@ -175,12 +177,10 @@
       "name": "Poll Rank Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        1780,
+        300
+      ]
     },
     {
       "parameters": {
@@ -209,7 +209,10 @@
       "name": "Rank Done?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2000, 300]
+      "position": [
+        2000,
+        300
+      ]
     },
     {
       "parameters": {
@@ -220,7 +223,10 @@
       "name": "Wait 5s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [2000, 480]
+      "position": [
+        2000,
+        480
+      ]
     },
     {
       "parameters": {
@@ -234,12 +240,10 @@
       "name": "Re-poll Rank",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2200, 480],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        2200,
+        480
+      ]
     },
     {
       "parameters": {
@@ -253,12 +257,10 @@
       "name": "Fetch Results",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "Everyrow API"
-        }
-      }
+      "position": [
+        2220,
+        300
+      ]
     },
     {
       "parameters": {
@@ -268,80 +270,179 @@
       "name": "Parse Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2440, 300]
+      "position": [
+        2440,
+        300
+      ]
     }
   ],
   "connections": {
     "When clicking 'Test workflow'": {
       "main": [
-        [{ "node": "Sample Data", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Sample Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Sample Data": {
       "main": [
-        [{ "node": "Create Session", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Create Session": {
       "main": [
-        [{ "node": "Create Input Artifact", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Create Input Artifact",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Create Input Artifact": {
       "main": [
-        [{ "node": "Poll Artifact Status", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Poll Artifact Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Poll Artifact Status": {
       "main": [
-        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Artifact Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Artifact Ready?": {
       "main": [
-        [{ "node": "Submit Rank Task", "type": "main", "index": 0 }],
-        [{ "node": "Wait 2s", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Submit Rank Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Wait 2s": {
       "main": [
-        [{ "node": "Re-poll Artifact", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Re-poll Artifact",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Re-poll Artifact": {
       "main": [
-        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Artifact Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Submit Rank Task": {
       "main": [
-        [{ "node": "Poll Rank Status", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Poll Rank Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Poll Rank Status": {
       "main": [
-        [{ "node": "Rank Done?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Rank Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Rank Done?": {
       "main": [
-        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
-        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Fetch Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Wait 5s": {
       "main": [
-        [{ "node": "Re-poll Rank", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Re-poll Rank",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Re-poll Rank": {
       "main": [
-        [{ "node": "Rank Done?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Rank Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Fetch Results": {
       "main": [
-        [{ "node": "Parse Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
