@@ -66,7 +66,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Input Artifact').item.json.task_id }}/status",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -147,7 +147,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Submit Rank Task').item.json.task_id }}/status",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
