@@ -34,7 +34,12 @@
       "name": "Create Session",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300]
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {
@@ -51,7 +56,12 @@
       "name": "Create Input Artifact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 300]
+      "position": [900, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {
@@ -65,7 +75,12 @@
       "name": "Poll Artifact Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 300]
+      "position": [1120, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {
@@ -122,7 +137,12 @@
       "name": "Submit Rank Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 300]
+      "position": [1560, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {
@@ -136,7 +156,12 @@
       "name": "Poll Rank Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 300]
+      "position": [1780, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {
@@ -190,7 +215,12 @@
       "name": "Fetch Results",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 300]
+      "position": [2220, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Everyrow API"
+        }
+      }
     },
     {
       "parameters": {

@@ -13,10 +13,12 @@ These workflow templates work on **n8n Cloud** (and self-hosted n8n) without ins
 1. In n8n, go to **Credentials** → **Add Credential**
 2. Search for **Header Auth**
 3. Configure:
-   - **Name**: `Everyrow API`
+   - **Name**: `Everyrow API` (use this exact name for auto-linking with imported workflows)
    - **Header Name**: `Authorization`
    - **Header Value**: `Bearer YOUR_API_KEY_HERE`
 4. Save the credential
+
+> **Note:** The workflow template references a credential named "Everyrow API". If you name your credential exactly this, all HTTP nodes will automatically use it when you import the workflow.
 
 ### Step 2: Import the Workflow
 
