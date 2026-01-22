@@ -1,0 +1,315 @@
+{
+  "name": "Everyrow Agent Map Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to research\nconst companies = [\n  { name: \"OpenAI\", website: \"openai.com\" },\n  { name: \"Anthropic\", website: \"anthropic.com\" },\n  { name: \"Mistral AI\", website: \"mistral.ai\" }\n];\n\n// Return single item with all companies\nreturn [{ json: { companies } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/sessions/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: \"n8n-agent-\" + Date.now() }) }}",
+        "options": {}
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').first().json.companies\n    }\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "create-artifact",
+      "name": "Create Input Artifact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-artifact-status",
+      "name": "Poll Artifact Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-artifact-done",
+      "name": "Artifact Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait-artifact",
+      "name": "Wait 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Input Artifact').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-artifact",
+      "name": "Re-poll Artifact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').first().json.session_id,\n  payload: {\n    task_type: \"agent\",\n    processing_mode: \"map\",\n    query: {\n      task: \"Research this company and find their latest funding round, including the amount raised, date, and lead investors.\",\n      effort_level: \"low\",\n      response_schema: {\n        _model_name: \"FundingResponse\",\n        funding_amount: { type: \"str\", optional: true, description: \"Amount raised in latest round\" },\n        funding_date: { type: \"str\", optional: true, description: \"Date of latest funding\" },\n        lead_investors: { type: \"str\", optional: true, description: \"Lead investors in the round\" },\n        funding_round: { type: \"str\", optional: true, description: \"Round type (Seed, Series A, etc.)\" }\n      },\n      response_schema_type: \"CUSTOM\",\n      is_expand: false,\n      include_provenance_and_notes: false\n    },\n    input_artifacts: [$json.artifact_id],\n    context_artifacts: [],\n    join_with_input: true\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "submit-agent",
+      "name": "Submit Agent Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-agent-status",
+      "name": "Poll Agent Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-agent-done",
+      "name": "Agent Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait-agent",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2000, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Submit Agent Task').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-agent",
+      "name": "Re-poll Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the agent results from the artifact response\nconst response = $input.first().json;\nconst artifacts = Array.isArray(response) ? response : [response];\n\nif (artifacts[0]?.artifacts) {\n  return artifacts[0].artifacts.map(a => ({ json: a.data }));\n}\n\nreturn [{ json: { error: \"Unexpected response format\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [{ "node": "Sample Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sample Data": {
+      "main": [
+        [{ "node": "Create Session", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [{ "node": "Create Input Artifact", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Input Artifact": {
+      "main": [
+        [{ "node": "Poll Artifact Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Artifact Status": {
+      "main": [
+        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Artifact Ready?": {
+      "main": [
+        [{ "node": "Submit Agent Task", "type": "main", "index": 0 }],
+        [{ "node": "Wait 2s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 2s": {
+      "main": [
+        [{ "node": "Re-poll Artifact", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Artifact": {
+      "main": [
+        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Submit Agent Task": {
+      "main": [
+        [{ "node": "Poll Agent Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Agent Status": {
+      "main": [
+        [{ "node": "Agent Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agent Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 10s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [{ "node": "Re-poll Agent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Agent": {
+      "main": [
+        [{ "node": "Agent Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Results": {
+      "main": [
+        [{ "node": "Parse Results", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

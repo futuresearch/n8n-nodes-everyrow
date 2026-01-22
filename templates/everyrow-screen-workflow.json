@@ -1,0 +1,315 @@
+{
+  "name": "Everyrow Screen Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to screen/filter\nconst companies = [\n  { name: \"OpenAI\", description: \"AI research company, creators of GPT models\", industry: \"AI\" },\n  { name: \"Stripe\", description: \"Payment processing platform for internet businesses\", industry: \"Fintech\" },\n  { name: \"Anthropic\", description: \"AI safety company, creators of Claude\", industry: \"AI\" },\n  { name: \"Snowflake\", description: \"Cloud data warehousing and analytics platform\", industry: \"Data\" },\n  { name: \"Databricks\", description: \"Unified analytics platform for big data and AI\", industry: \"Data/AI\" },\n  { name: \"Figma\", description: \"Collaborative design tool for UI/UX\", industry: \"Design\" },\n  { name: \"Scale AI\", description: \"Data labeling and AI infrastructure company\", industry: \"AI\" },\n  { name: \"Notion\", description: \"All-in-one workspace for notes and collaboration\", industry: \"Productivity\" }\n];\n\n// Return single item with all companies\nreturn [{ json: { companies } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/sessions/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: \"n8n-screen-\" + Date.now() }) }}",
+        "options": {}
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').first().json.companies\n    }\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "create-artifact",
+      "name": "Create Input Artifact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-artifact-status",
+      "name": "Poll Artifact Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-artifact-done",
+      "name": "Artifact Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait-artifact",
+      "name": "Wait 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Input Artifact').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-artifact",
+      "name": "Re-poll Artifact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').first().json.session_id,\n  payload: {\n    task_type: \"deep_screen\",\n    query: {\n      task: \"Filter to only include companies that are primarily focused on AI/ML. Companies should be building AI models, AI infrastructure, or AI-powered products as their core business.\",\n      batch_size: 10,\n      preview: false\n    },\n    input_artifacts: [$json.artifact_id]\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "submit-screen",
+      "name": "Submit Screen Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-screen-status",
+      "name": "Poll Screen Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-screen-done",
+      "name": "Screen Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait-screen",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2000, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Submit Screen Task').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-screen",
+      "name": "Re-poll Screen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the screened results from the artifact response\nconst response = $input.first().json;\nconst artifacts = Array.isArray(response) ? response : [response];\n\nif (artifacts[0]?.artifacts) {\n  return artifacts[0].artifacts.map(a => ({ json: a.data }));\n}\n\nreturn [{ json: { error: \"Unexpected response format\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [{ "node": "Sample Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sample Data": {
+      "main": [
+        [{ "node": "Create Session", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [{ "node": "Create Input Artifact", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Input Artifact": {
+      "main": [
+        [{ "node": "Poll Artifact Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Artifact Status": {
+      "main": [
+        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Artifact Ready?": {
+      "main": [
+        [{ "node": "Submit Screen Task", "type": "main", "index": 0 }],
+        [{ "node": "Wait 2s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 2s": {
+      "main": [
+        [{ "node": "Re-poll Artifact", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Artifact": {
+      "main": [
+        [{ "node": "Artifact Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Submit Screen Task": {
+      "main": [
+        [{ "node": "Poll Screen Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Screen Status": {
+      "main": [
+        [{ "node": "Screen Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Screen Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [{ "node": "Re-poll Screen", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Screen": {
+      "main": [
+        [{ "node": "Screen Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Results": {
+      "main": [
+        [{ "node": "Parse Results", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

@@ -1,0 +1,426 @@
+{
+  "name": "Everyrow Merge Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Left table: Companies we want to enrich\nconst leftTable = [\n  { company_name: \"OpenAI\", notes: \"Interested in partnership\" },\n  { company_name: \"Anthropic\", notes: \"Potential customer\" },\n  { company_name: \"Stripe\", notes: \"Payment provider\" },\n  { company_name: \"Databricks\", notes: \"Data platform\" }\n];\n\n// Right table: Company details to merge in\nconst rightTable = [\n  { name: \"OpenAI\", founded: 2015, headquarters: \"San Francisco\", employees: 1500 },\n  { name: \"Anthropic\", founded: 2021, headquarters: \"San Francisco\", employees: 500 },\n  { name: \"Stripe Inc.\", founded: 2010, headquarters: \"San Francisco\", employees: 8000 },\n  { name: \"Databricks Inc\", founded: 2013, headquarters: \"San Francisco\", employees: 5000 },\n  { name: \"Google\", founded: 1998, headquarters: \"Mountain View\", employees: 180000 }\n];\n\nreturn [{ json: { leftTable, rightTable } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/sessions/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: \"n8n-merge-\" + Date.now() }) }}",
+        "options": {}
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').first().json.leftTable\n    }\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "create-left-artifact",
+      "name": "Create Left Table",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-left-status",
+      "name": "Poll Left Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-left-done",
+      "name": "Left Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait-left",
+      "name": "Wait 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Left Table').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-left",
+      "name": "Re-poll Left",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').first().json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').first().json.rightTable\n    }\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "create-right-artifact",
+      "name": "Create Right Table",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-right-status",
+      "name": "Poll Right Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-right-done",
+      "name": "Right Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "wait-right",
+      "name": "Wait 2s (Right)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2000, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Right Table').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-right",
+      "name": "Re-poll Right",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').first().json.session_id,\n  payload: {\n    task_type: \"deep_merge\",\n    query: {\n      task: \"Match companies from the left table with their corresponding entries in the right table based on company name. The names may be slightly different (e.g., 'Stripe' vs 'Stripe Inc.').\",\n      preview: false\n    },\n    input_artifacts: [$('Poll Left Status').first().json.artifact_id],\n    context_artifacts: [$json.artifact_id]\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "submit-merge",
+      "name": "Submit Merge Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "poll-merge-status",
+      "name": "Poll Merge Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-merge-done",
+      "name": "Merge Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2660, 300]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait-merge",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2660, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $('Submit Merge Task').first().json.task_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "repoll-merge",
+      "name": "Re-poll Merge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2880, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the merged results from the artifact response\nconst response = $input.first().json;\nconst artifacts = Array.isArray(response) ? response : [response];\n\nif (artifacts[0]?.artifacts) {\n  return artifacts[0].artifacts.map(a => ({ json: a.data }));\n}\n\nreturn [{ json: { error: \"Unexpected response format\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3100, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [{ "node": "Sample Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sample Data": {
+      "main": [
+        [{ "node": "Create Session", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [{ "node": "Create Left Table", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Left Table": {
+      "main": [
+        [{ "node": "Poll Left Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Left Status": {
+      "main": [
+        [{ "node": "Left Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Left Ready?": {
+      "main": [
+        [{ "node": "Create Right Table", "type": "main", "index": 0 }],
+        [{ "node": "Wait 2s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 2s": {
+      "main": [
+        [{ "node": "Re-poll Left", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Left": {
+      "main": [
+        [{ "node": "Left Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Right Table": {
+      "main": [
+        [{ "node": "Poll Right Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Right Status": {
+      "main": [
+        [{ "node": "Right Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Right Ready?": {
+      "main": [
+        [{ "node": "Submit Merge Task", "type": "main", "index": 0 }],
+        [{ "node": "Wait 2s (Right)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 2s (Right)": {
+      "main": [
+        [{ "node": "Re-poll Right", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Right": {
+      "main": [
+        [{ "node": "Right Ready?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Submit Merge Task": {
+      "main": [
+        [{ "node": "Poll Merge Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Merge Status": {
+      "main": [
+        [{ "node": "Merge Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [{ "node": "Re-poll Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-poll Merge": {
+      "main": [
+        [{ "node": "Merge Done?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Results": {
+      "main": [
+        [{ "node": "Parse Results", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

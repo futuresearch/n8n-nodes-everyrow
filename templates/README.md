@@ -203,15 +203,14 @@ After running the workflow, you should see results like:
 You can modify the workflow to use other Everyrow operations:
 
 ### Dedupe
-Replace the deep_rank payload with:
 ```json
 {
   "task_type": "dedupe",
+  "processing_mode": "transform",
   "query": {
     "equivalence_relation": "Two entries are duplicates if they represent the same entity..."
   },
-  "input_artifacts": ["<artifact_id>"],
-  "processing_mode": "MAP"
+  "input_artifacts": ["<artifact_id>"]
 }
 ```
 
@@ -245,6 +244,7 @@ Replace the deep_rank payload with:
 ```json
 {
   "task_type": "agent",
+  "processing_mode": "map",
   "query": {
     "task": "Research each company and find...",
     "effort_level": "low",
