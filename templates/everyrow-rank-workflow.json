@@ -4,7 +4,7 @@
     {
       "parameters": {},
       "id": "start",
-      "name": "When clicking \"Test workflow\"",
+      "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [240, 300]
@@ -22,7 +22,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $credentials.apiUrl }}/sessions/create",
+        "url": "https://engine.futuresearch.ai/sessions/create",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -34,18 +34,12 @@
       "name": "Create Session",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [680, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $credentials.apiUrl }}/tasks",
+        "url": "https://engine.futuresearch.ai/tasks",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -57,18 +51,12 @@
       "name": "Create Input Artifact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [900, 300]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $credentials.apiUrl }}/tasks/{{ $json.task_id }}/status",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -77,13 +65,7 @@
       "name": "Poll Artifact Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -128,7 +110,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $credentials.apiUrl }}/tasks",
+        "url": "https://engine.futuresearch.ai/tasks",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -140,18 +122,12 @@
       "name": "Submit Rank Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [1560, 300]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $credentials.apiUrl }}/tasks/{{ $json.task_id }}/status",
+        "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -160,13 +136,7 @@
       "name": "Poll Rank Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [1780, 300]
     },
     {
       "parameters": {
@@ -211,7 +181,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $credentials.apiUrl }}/artifacts?artifact_ids={{ $json.artifact_id }}",
+        "url": "=https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -220,13 +190,7 @@
       "name": "Fetch Results",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "everyrow-cred",
-          "name": "Everyrow API"
-        }
-      }
+      "position": [2220, 300]
     },
     {
       "parameters": {
@@ -240,7 +204,7 @@
     }
   ],
   "connections": {
-    "When clicking \"Test workflow\"": {
+    "When clicking 'Test workflow'": {
       "main": [
         [{ "node": "Sample Data", "type": "main", "index": 0 }]
       ]
