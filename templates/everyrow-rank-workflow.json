@@ -94,7 +94,7 @@
             {
               "id": "condition-completed",
               "leftValue": "={{ $json.status }}",
-              "rightValue": "COMPLETED",
+              "rightValue": "completed",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -175,7 +175,7 @@
             {
               "id": "condition-completed",
               "leftValue": "={{ $json.status }}",
-              "rightValue": "COMPLETED",
+              "rightValue": "completed",
               "operator": {
                 "type": "string",
                 "operation": "equals"

@@ -100,7 +100,7 @@ return companies.map(c => ({ json: c }));
 - **Authentication**: Header Auth
 
 #### Node 6: Artifact Ready? (IF node)
-- **Condition**: `{{ $json.status }}` equals `COMPLETED`
+- **Condition**: `{{ $json.status }}` equals `completed`
 - **True**: Continue to Submit Rank Task
 - **False**: Go to Wait node
 
@@ -141,7 +141,7 @@ return companies.map(c => ({ json: c }));
 - **Authentication**: Header Auth
 
 #### Node 10: Rank Done? (IF node)
-- **Condition**: `{{ $json.status }}` equals `COMPLETED`
+- **Condition**: `{{ $json.status }}` equals `completed`
 - **True**: Continue to Fetch Results
 - **False**: Go to Wait node
 

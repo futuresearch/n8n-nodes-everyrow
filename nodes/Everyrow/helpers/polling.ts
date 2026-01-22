@@ -30,19 +30,20 @@ export async function pollTaskCompletion(
 			const status = await getTaskStatus.call(this, taskId);
 			retries = 0; // Reset retries on successful request
 
-			// Check terminal states
-			if (status.status === 'COMPLETED') {
+			// Check terminal states (API returns lowercase status values)
+			const statusLower = status.status.toLowerCase();
+			if (statusLower === 'completed') {
 				if (!status.artifact_id) {
 					throw new Error(`Task ${taskId} completed but no artifact ID was returned`);
 				}
 				return status;
 			}
 
-			if (status.status === 'FAILED') {
+			if (statusLower === 'failed') {
 				throw new Error(`Task ${taskId} failed: ${status.error || 'Unknown error'}`);
 			}
 
-			if (status.status === 'REVOKED') {
+			if (statusLower === 'revoked') {
 				throw new Error(`Task ${taskId} was revoked/cancelled`);
 			}
 

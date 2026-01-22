@@ -14,7 +14,7 @@ export interface SubmitTaskResponse {
 }
 
 export interface TaskStatusResponse {
-	status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'REVOKED';
+	status: string; // API returns lowercase: 'pending' | 'running' | 'completed' | 'failed' | 'revoked'
 	artifact_id?: string;
 	error?: string;
 }
