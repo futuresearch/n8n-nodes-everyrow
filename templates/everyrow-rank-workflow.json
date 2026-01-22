@@ -32,7 +32,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ name: \"n8n-rank-\" + Date.now() }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "create-session",
       "name": "Create Session",
@@ -50,7 +52,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  session_id: $json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').first().json.companies\n    }\n  }\n}) }}",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "create-artifact",
       "name": "Create Input Artifact",
@@ -65,7 +69,9 @@
       "parameters": {
         "method": "GET",
         "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "poll-artifact-status",
       "name": "Poll Artifact Status",
@@ -126,7 +132,9 @@
       "parameters": {
         "method": "GET",
         "url": "=https://engine.futuresearch.ai/tasks/{{ $('Create Input Artifact').first().json.task_id }}/status",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "repoll-artifact",
       "name": "Re-poll Artifact",
@@ -144,7 +152,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').first().json.session_id,\n  payload: {\n    task_type: \"deep_rank\",\n    query: {\n      task: \"Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.\",\n      response_schema: {\n        _model_name: \"RankResponse\",\n        score: { type: \"float\", optional: false, description: \"Relevance score from 0-100\" },\n        reasoning: { type: \"str\", optional: false, description: \"Brief explanation of the score\" }\n      },\n      field_to_sort_by: \"score\",\n      ascending_order: false,\n      preview: false\n    },\n    input_artifacts: [$json.artifact_id],\n    context_artifacts: []\n  }\n}) }}",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "submit-rank",
       "name": "Submit Rank Task",
@@ -159,7 +169,9 @@
       "parameters": {
         "method": "GET",
         "url": "=https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "poll-rank-status",
       "name": "Poll Rank Status",
@@ -220,7 +232,9 @@
       "parameters": {
         "method": "GET",
         "url": "=https://engine.futuresearch.ai/tasks/{{ $('Submit Rank Task').first().json.task_id }}/status",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "repoll-rank",
       "name": "Re-poll Rank",
@@ -235,7 +249,9 @@
       "parameters": {
         "method": "GET",
         "url": "=https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "fetch-results",
       "name": "Fetch Results",

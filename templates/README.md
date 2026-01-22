@@ -24,24 +24,15 @@ These workflow templates work on **n8n Cloud** (and self-hosted n8n) without ins
 2. Select `everyrow-rank-workflow.json`
 3. The workflow will be imported
 
-### Step 3: Add Authentication to HTTP Nodes
+### Step 3: Select Credential on HTTP Nodes
 
-After importing, you need to add authentication to each HTTP Request node:
+After importing, each HTTP Request node needs your credential selected:
 
 1. Click on **Create Session** node
-2. Set **Authentication** to "Generic Credential Type"
-3. Set **Generic Auth Type** to "Header Auth"
-4. Select your "Everyrow API" credential
-5. Repeat for all HTTP Request nodes:
-   - Create Input Artifact
-   - Poll Artifact Status
-   - Re-poll Artifact
-   - Submit Rank Task
-   - Poll Rank Status
-   - Re-poll Rank
-   - Fetch Results
+2. In **Credential to connect with**, select your Header Auth credential
+3. Repeat for the other HTTP nodes: Create Input Artifact, Poll Artifact Status, Re-poll Artifact, Submit Rank Task, Poll Rank Status, Re-poll Rank, Fetch Results
 
-> **Tip:** You only need to do this once after importing. The settings will be saved with your workflow.
+> **Tip:** The auth type is pre-configured - you just need to pick your credential from the dropdown.
 
 
 ---
