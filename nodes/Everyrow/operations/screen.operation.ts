@@ -110,10 +110,9 @@ export async function executeScreenOperation(
 
 	// Build and submit screen task
 	const payload = {
-		DeepScreenRequest: {
-			query: queryParams,
-			input_artifacts: [inputArtifactId],
-		},
+		task_type: 'deep_screen',
+		query: queryParams,
+		input_artifacts: [inputArtifactId],
 	};
 
 	const taskResponse = await submitTask.call(this, session.session_id, payload);

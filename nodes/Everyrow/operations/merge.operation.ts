@@ -159,11 +159,10 @@ export async function executeMergeOperation(
 
 	// Build and submit merge task
 	const payload = {
-		DeepMergeRequest: {
-			query: queryParams,
-			input_artifacts: [leftArtifactId],
-			context_artifacts: [rightArtifactId],
-		},
+		task_type: 'deep_merge',
+		query: queryParams,
+		input_artifacts: [leftArtifactId],
+		context_artifacts: [rightArtifactId],
 	};
 
 	const taskResponse = await submitTask.call(this, session.session_id, payload);

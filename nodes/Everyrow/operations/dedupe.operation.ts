@@ -48,13 +48,12 @@ export async function executeDedupeOperation(
 
 	// Build and submit dedupe task
 	const payload = {
-		DedupeRequestParams: {
-			query: {
-				equivalence_relation: equivalenceRelation,
-			},
-			input_artifacts: [inputArtifactId],
-			processing_mode: 'MAP',
+		task_type: 'dedupe',
+		query: {
+			equivalence_relation: equivalenceRelation,
 		},
+		input_artifacts: [inputArtifactId],
+		processing_mode: 'MAP',
 	};
 
 	const taskResponse = await submitTask.call(this, session.session_id, payload);

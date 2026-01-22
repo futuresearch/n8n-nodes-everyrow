@@ -84,10 +84,9 @@ return companies.map(c => ({ json: c }));
 {
   "session_id": "{{ $('Create Session').item.json.session_id }}",
   "payload": {
-    "CreateGroupRequest": {
-      "query": {
-        "data_to_create": {{ JSON.stringify($('Sample Data').all().map(i => i.json)) }}
-      }
+    "task_type": "create_group",
+    "query": {
+      "data_to_create": {{ JSON.stringify($('Sample Data').all().map(i => i.json)) }}
     }
   }
 }
@@ -116,21 +115,20 @@ return companies.map(c => ({ json: c }));
 {
   "session_id": "{{ $('Create Session').item.json.session_id }}",
   "payload": {
-    "DeepRankRequest": {
-      "query": {
-        "task": "Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.",
-        "response_schema": {
-          "_model_name": "RankResponse",
-          "score": { "type": "float", "optional": false, "description": "Relevance score from 0-100" },
-          "reasoning": { "type": "str", "optional": false, "description": "Brief explanation of the score" }
-        },
-        "field_to_sort_by": "score",
-        "ascending_order": false,
-        "preview": false
+    "task_type": "deep_rank",
+    "query": {
+      "task": "Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.",
+      "response_schema": {
+        "_model_name": "RankResponse",
+        "score": { "type": "float", "optional": false, "description": "Relevance score from 0-100" },
+        "reasoning": { "type": "str", "optional": false, "description": "Brief explanation of the score" }
       },
-      "input_artifacts": ["{{ $('Poll Artifact Status').item.json.artifact_id }}"],
-      "context_artifacts": []
-    }
+      "field_to_sort_by": "score",
+      "ascending_order": false,
+      "preview": false
+    },
+    "input_artifacts": ["{{ $('Poll Artifact Status').item.json.artifact_id }}"],
+    "context_artifacts": []
   }
 }
 ```
@@ -203,65 +201,61 @@ After running the workflow, you should see results like:
 You can modify the workflow to use other Everyrow operations:
 
 ### Dedupe
-Replace the DeepRankRequest with:
+Replace the deep_rank payload with:
 ```json
 {
-  "DedupeRequestParams": {
-    "query": {
-      "equivalence_relation": "Two entries are duplicates if they represent the same entity..."
-    },
-    "input_artifacts": ["<artifact_id>"],
-    "processing_mode": "MAP"
-  }
+  "task_type": "dedupe",
+  "query": {
+    "equivalence_relation": "Two entries are duplicates if they represent the same entity..."
+  },
+  "input_artifacts": ["<artifact_id>"],
+  "processing_mode": "MAP"
 }
 ```
 
 ### Screen
 ```json
 {
-  "DeepScreenRequest": {
-    "query": {
-      "task": "Filter to only include companies that...",
-      "batch_size": 10,
-      "preview": false
-    },
-    "input_artifacts": ["<artifact_id>"]
-  }
+  "task_type": "deep_screen",
+  "query": {
+    "task": "Filter to only include companies that...",
+    "batch_size": 10,
+    "preview": false
+  },
+  "input_artifacts": ["<artifact_id>"]
 }
 ```
 
 ### Merge
 ```json
 {
-  "DeepMergeRequest": {
-    "query": {
-      "task": "Match companies from the left table with...",
-      "preview": false
-    },
-    "input_artifacts": ["<left_artifact_id>"],
-    "context_artifacts": ["<right_artifact_id>"]
-  }
+  "task_type": "deep_merge",
+  "query": {
+    "task": "Match companies from the left table with...",
+    "preview": false
+  },
+  "input_artifacts": ["<left_artifact_id>"],
+  "context_artifacts": ["<right_artifact_id>"]
 }
 ```
 
 ### Agent Map
 ```json
 {
-  "MapAgentRequestParams": {
-    "query": {
-      "task": "Research each company and find...",
-      "effort_level": "low",
-      "response_schema": {
-        "_model_name": "AgentResponse",
-        "answer": { "type": "str", "description": "The research findings" }
-      },
-      "response_schema_type": "CUSTOM",
-      "is_expand": false,
-      "include_provenance_and_notes": false
+  "task_type": "agent",
+  "query": {
+    "task": "Research each company and find...",
+    "effort_level": "low",
+    "response_schema": {
+      "_model_name": "AgentResponse",
+      "answer": { "type": "str", "description": "The research findings" }
     },
-    "input_artifacts": ["<artifact_id>"],
-    "context_artifacts": [],
-    "join_with_input": true
-  }
+    "response_schema_type": "CUSTOM",
+    "is_expand": false,
+    "include_provenance_and_notes": false
+  },
+  "input_artifacts": ["<artifact_id>"],
+  "context_artifacts": [],
+  "join_with_input": true
 }
 ```

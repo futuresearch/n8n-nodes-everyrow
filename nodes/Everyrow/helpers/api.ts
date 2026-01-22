@@ -111,14 +111,13 @@ export async function createTableArtifact(
 	data: IDataObject[],
 ): Promise<string> {
 	const payload = {
+		task_type: 'create_group',
 		query: {
 			data_to_create: data,
 		},
 	};
 
-	const response = await submitTask.call(this, sessionId, {
-		CreateGroupRequest: payload,
-	});
+	const response = await submitTask.call(this, sessionId, payload);
 
 	// Poll for completion and return the artifact ID
 	const { pollTaskCompletion } = await import('./polling');

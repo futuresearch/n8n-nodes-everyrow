@@ -44,7 +44,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').item.json.session_id,\n  payload: {\n    CreateGroupRequest: {\n      query: {\n        data_to_create: $('Sample Data').all().map(i => i.json)\n      }\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').item.json.session_id,\n  payload: {\n    task_type: \"create_group\",\n    query: {\n      data_to_create: $('Sample Data').all().map(i => i.json)\n    }\n  }\n}) }}",
         "options": {}
       },
       "id": "create-artifact",
@@ -115,7 +115,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').item.json.session_id,\n  payload: {\n    DeepRankRequest: {\n      query: {\n        task: \"Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.\",\n        response_schema: {\n          _model_name: \"RankResponse\",\n          score: { type: \"float\", optional: false, description: \"Relevance score from 0-100\" },\n          reasoning: { type: \"str\", optional: false, description: \"Brief explanation of the score\" }\n        },\n        field_to_sort_by: \"score\",\n        ascending_order: false,\n        preview: false\n      },\n      input_artifacts: [$('Poll Artifact Status').item.json.artifact_id],\n      context_artifacts: []\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  session_id: $('Create Session').item.json.session_id,\n  payload: {\n    task_type: \"deep_rank\",\n    query: {\n      task: \"Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.\",\n      response_schema: {\n        _model_name: \"RankResponse\",\n        score: { type: \"float\", optional: false, description: \"Relevance score from 0-100\" },\n        reasoning: { type: \"str\", optional: false, description: \"Brief explanation of the score\" }\n      },\n      field_to_sort_by: \"score\",\n      ascending_order: false,\n      preview: false\n    },\n    input_artifacts: [$('Poll Artifact Status').item.json.artifact_id],\n    context_artifacts: []\n  }\n}) }}",
         "options": {}
       },
       "id": "submit-rank",

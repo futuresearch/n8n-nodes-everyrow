@@ -142,17 +142,16 @@ export async function executeRankOperation(
 
 	// Build and submit rank task
 	const payload = {
-		DeepRankRequest: {
-			query: {
-				task,
-				response_schema: responseSchema,
-				field_to_sort_by: fieldName,
-				ascending_order: ascendingOrder,
-				preview,
-			},
-			input_artifacts: [inputArtifactId],
-			context_artifacts: [],
+		task_type: 'deep_rank',
+		query: {
+			task,
+			response_schema: responseSchema,
+			field_to_sort_by: fieldName,
+			ascending_order: ascendingOrder,
+			preview,
 		},
+		input_artifacts: [inputArtifactId],
+		context_artifacts: [],
 	};
 
 	const taskResponse = await submitTask.call(this, session.session_id, payload);

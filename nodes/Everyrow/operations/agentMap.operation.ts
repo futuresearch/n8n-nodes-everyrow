@@ -148,12 +148,11 @@ export async function executeAgentMapOperation(
 
 	// Build and submit agent map task
 	const payload = {
-		MapAgentRequestParams: {
-			query: queryParams,
-			input_artifacts: [inputArtifactId],
-			context_artifacts: [],
-			join_with_input: true,
-		},
+		task_type: 'agent',
+		query: queryParams,
+		input_artifacts: [inputArtifactId],
+		context_artifacts: [],
+		join_with_input: true,
 	};
 
 	const taskResponse = await submitTask.call(this, session.session_id, payload);
