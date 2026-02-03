@@ -1,10 +1,8 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
 import {
 	createSession,
-	createTableArtifact,
-	getArtifacts,
-	submitTask,
-	type ArtifactGroupRecord,
+	getTaskResult,
+	submitDedupeOperation,
 } from '../helpers/api';
 import { pollTaskCompletion } from '../helpers/polling';
 
@@ -40,41 +38,30 @@ export async function executeDedupeOperation(
 ): Promise<IDataObject[]> {
 	const equivalenceRelation = this.getNodeParameter('equivalenceRelation', 0) as string;
 
-	// Create session
+	// Create session (optional - the API will auto-create if not provided)
 	const session = await createSession.call(this, sessionName);
 
-	// Create input artifact from items
-	const inputArtifactId = await createTableArtifact.call(this, session.session_id, items);
-
-	// Build and submit dedupe task
-	const payload = {
-		task_type: 'dedupe',
-		query: {
-			equivalence_relation: equivalenceRelation,
-		},
-		input_artifacts: [inputArtifactId],
-		processing_mode: 'MAP',
-	};
-
-	const taskResponse = await submitTask.call(this, session.session_id, payload);
+	// Submit dedupe operation directly with data
+	const operationResponse = await submitDedupeOperation.call(
+		this,
+		items,
+		equivalenceRelation,
+		session.session_id,
+	);
 
 	// Poll for completion
-	const status = await pollTaskCompletion.call(this, taskResponse.task_id, pollInterval, maxWaitTime);
+	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
 
-	if (!status.artifact_id) {
-		throw new Error('Dedupe operation completed but no artifact ID was returned');
+	// Fetch results using the new result endpoint
+	const result = await getTaskResult.call(this, operationResponse.task_id);
+
+	if (!result.data) {
+		throw new Error('Dedupe operation completed but no data was returned');
 	}
 
-	// Fetch results
-	const artifacts = await getArtifacts.call(this, [status.artifact_id]);
-	if (artifacts.length === 0) {
-		throw new Error('No artifacts returned from dedupe operation');
+	// Handle both array and single object responses
+	if (Array.isArray(result.data)) {
+		return result.data;
 	}
-
-	const result = artifacts[0] as ArtifactGroupRecord;
-	if (!result.artifacts) {
-		throw new Error('Expected table result from dedupe operation');
-	}
-
-	return result.artifacts.map((a) => a.data);
+	return [result.data];
 }

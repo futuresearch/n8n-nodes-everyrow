@@ -23,7 +23,7 @@ export class EveryrowApi implements ICredentialType {
 			displayName: 'API URL',
 			name: 'apiUrl',
 			type: 'string',
-			default: 'https://engine.futuresearch.ai',
+			default: 'https://engine.futuresearch.ai/api/v0',
 			description: 'The Everyrow API endpoint URL',
 		},
 	];
@@ -40,8 +40,9 @@ export class EveryrowApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.apiUrl}}',
-			url: '/whoami',
-			method: 'GET',
+			url: '/sessions',
+			method: 'POST',
+			body: { name: 'n8n-credential-test' },
 		},
 	};
 }

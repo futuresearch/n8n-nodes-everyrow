@@ -1,0 +1,56 @@
+{
+  "name": "Everyrow Agent Map (Node)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to research\nreturn [\n  { json: { name: \"OpenAI\", website: \"openai.com\" } },\n  { json: { name: \"Anthropic\", website: \"anthropic.com\" } },\n  { json: { name: \"Mistral AI\", website: \"mistral.ai\" } }\n];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "agentOperations",
+        "operation": "agentMap",
+        "task": "Research this company and find their latest funding round, including the amount raised, date, and lead investors.",
+        "effortLevel": "low",
+        "joinWithInput": true
+      },
+      "id": "everyrow-agent",
+      "name": "Research Companies",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Research Companies", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Everyrow Screen (Node)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to screen/filter\nreturn [\n  { json: { name: \"OpenAI\", description: \"AI research company, creators of GPT models\", industry: \"AI\" } },\n  { json: { name: \"Stripe\", description: \"Payment processing platform for internet businesses\", industry: \"Fintech\" } },\n  { json: { name: \"Anthropic\", description: \"AI safety company, creators of Claude\", industry: \"AI\" } },\n  { json: { name: \"Snowflake\", description: \"Cloud data warehousing and analytics platform\", industry: \"Data\" } },\n  { json: { name: \"Databricks\", description: \"Unified analytics platform for big data and AI\", industry: \"Data/AI\" } },\n  { json: { name: \"Figma\", description: \"Collaborative design tool for UI/UX\", industry: \"Design\" } },\n  { json: { name: \"Scale AI\", description: \"Data labeling and AI infrastructure company\", industry: \"AI\" } },\n  { json: { name: \"Notion\", description: \"All-in-one workspace for notes and collaboration\", industry: \"Productivity\" } }\n];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "dataOperations",
+        "operation": "screen",
+        "task": "Filter to only include companies that are primarily focused on AI/ML. Companies should be building AI models, AI infrastructure, or AI-powered products as their core business.",
+        "responseSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"included\": { \"type\": \"boolean\", \"description\": \"Whether the company passes the AI/ML filter\" },\n    \"reasoning\": { \"type\": \"string\", \"description\": \"Explanation for the decision\" }\n  },\n  \"required\": [\"included\"]\n}"
+      },
+      "id": "everyrow-screen",
+      "name": "Screen Companies",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Screen Companies", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

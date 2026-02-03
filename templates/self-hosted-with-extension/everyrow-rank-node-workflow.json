@@ -1,0 +1,57 @@
+{
+  "name": "Everyrow Rank (Node)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to rank by AI relevance\nreturn [\n  { json: { name: \"OpenAI\", description: \"AI research company, creators of GPT models and ChatGPT\" } },\n  { json: { name: \"Stripe\", description: \"Payment processing platform for internet businesses\" } },\n  { json: { name: \"Anthropic\", description: \"AI safety company, creators of Claude\" } },\n  { json: { name: \"Snowflake\", description: \"Cloud data warehousing and analytics platform\" } },\n  { json: { name: \"Databricks\", description: \"Unified analytics platform for big data and AI\" } },\n  { json: { name: \"Figma\", description: \"Collaborative design tool for UI/UX\" } },\n  { json: { name: \"Scale AI\", description: \"Data labeling and AI infrastructure company\" } },\n  { json: { name: \"Notion\", description: \"All-in-one workspace for notes and collaboration\" } }\n];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "dataOperations",
+        "operation": "rank",
+        "task": "Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.",
+        "sortBy": "score",
+        "ascending": false,
+        "responseSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"score\": { \"type\": \"number\", \"description\": \"Relevance score from 0-100\" },\n    \"reasoning\": { \"type\": \"string\", \"description\": \"Brief explanation of the score\" }\n  },\n  \"required\": [\"score\"]\n}"
+      },
+      "id": "everyrow-rank",
+      "name": "Rank Companies",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Rank Companies", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

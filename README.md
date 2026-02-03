@@ -8,11 +8,133 @@ Everyrow enables you to perform intelligent data operations using AI, including 
 
 ## Installation
 
+### For n8n Users (Community Node)
+
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
 ```bash
 npm install n8n-nodes-everyrow
 ```
+
+### For n8n Cloud Users
+
+n8n Cloud doesn't support custom community nodes. Use our **HTTP Request workflow templates** instead - see [`templates/n8n-cloud-or-no-extension/`](templates/n8n-cloud-or-no-extension/) for ready-to-import workflows that work on any n8n instance without installing custom nodes.
+
+## Local Development Setup
+
+To test this node locally during development:
+
+### Prerequisites
+
+1. **Node.js 18+** - Install via [nvm](https://github.com/nvm-sh/nvm) or [nodejs.org](https://nodejs.org)
+2. **pnpm** - Install with `npm install -g pnpm`
+3. **n8n** - Install globally with `npm install -g n8n`
+4. **Everyrow API Key** - Get one at [everyrow.io/settings/api-keys](https://everyrow.io/settings/api-keys)
+
+### Step 1: Clone and Build
+
+```bash
+git clone https://github.com/futuresearch/n8n-nodes-everyrow.git
+cd n8n-nodes-everyrow
+
+# Install dependencies
+pnpm install
+
+# Build the node
+pnpm build
+```
+
+### Step 2: Install in n8n
+
+```bash
+# Create n8n custom nodes directory
+mkdir -p ~/.n8n/nodes
+cd ~/.n8n/nodes
+
+# Install the local package
+npm init -y
+npm install /path/to/n8n-nodes-everyrow
+```
+
+### Step 3: Start n8n
+
+```bash
+n8n start
+```
+
+Open http://localhost:5678 in your browser.
+
+### Step 4: First-Time n8n Setup
+
+1. **Create an account** - n8n will prompt you to create a local account (email + password)
+2. **Skip or complete onboarding** - You can skip the onboarding wizard
+
+### Step 5: Configure Everyrow Credentials
+
+1. Go to **Credentials** (left sidebar) → **Add Credential**
+2. Search for **"Everyrow"**
+3. Enter your API key from [everyrow.io/settings/api-keys](https://everyrow.io/settings/api-keys)
+4. Click **Save**
+
+### Step 6: Create a Test Workflow
+
+1. Click **Add Workflow**
+2. Add a **Manual Trigger** node
+3. Add a **Code** node with sample data:
+   ```javascript
+   const companies = [
+     { name: "OpenAI", description: "AI research company" },
+     { name: "Stripe", description: "Payment processing" },
+     { name: "Anthropic", description: "AI safety company" }
+   ];
+   return companies.map(c => ({ json: c }));
+   ```
+4. Add the **Everyrow** node:
+   - Select **Data Operations** → **Rank**
+   - Task: "Score by AI relevance, 0-100"
+   - Response Schema: `{"score": {"type": "float"}, "reason": {"type": "str"}}`
+   - Sort Field: `score`
+5. Connect the nodes and click **Test Workflow**
+
+### Running Tests
+
+Tests require a valid API key. Create a `.env` file (gitignored):
+
+```bash
+cp .env.example .env
+# Edit .env and add your API key
+```
+
+Then run:
+
+```bash
+pnpm test         # Run tests once
+pnpm test:watch   # Run tests in watch mode
+```
+
+### Development Commands
+
+```bash
+pnpm build        # Build the node
+pnpm dev          # Watch mode for development
+pnpm lint         # Run linter
+pnpm test         # Run tests (requires .env with API key)
+```
+
+### Troubleshooting
+
+**Node not appearing in n8n?**
+- Ensure the package is built (`pnpm build`)
+- Check n8n logs for loading errors: `N8N_LOG_LEVEL=debug n8n start`
+- Verify the symlink exists: `ls -la ~/.n8n/nodes/node_modules/`
+
+**"Everyrow" credential type not found?**
+- Restart n8n after installing the package
+- Check that `dist/credentials/EveryrowApi.credentials.js` exists
+
+**API errors?**
+- Verify your API key is correct
+- Check the API URL (should be: `https://engine.futuresearch.ai/api/v0`)
 
 ## Operations
 

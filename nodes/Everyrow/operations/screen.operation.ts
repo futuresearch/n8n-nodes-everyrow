@@ -1,10 +1,8 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
 import {
 	createSession,
-	createTableArtifact,
-	getArtifacts,
-	submitTask,
-	type ArtifactGroupRecord,
+	getTaskResult,
+	submitScreenOperation,
 } from '../helpers/api';
 import { pollTaskCompletion } from '../helpers/polling';
 
@@ -32,37 +30,9 @@ export const screenOperationFields: INodeProperties[] = [
 		displayName: 'Response Schema (JSON)',
 		name: 'responseSchema',
 		type: 'json',
-		default: '',
-		placeholder:
-			'{"included": {"type": "bool", "description": "Whether the row passes the screen"}, "reason": {"type": "str", "description": "Why included or excluded"}}',
+		default: '{"type": "object", "properties": {"included": {"type": "boolean", "description": "Whether the row passes the filter"}, "reasoning": {"type": "string", "description": "Explanation for the decision"}}, "required": ["included"]}',
 		description:
-			'Optional custom response schema to capture additional information during screening',
-		displayOptions: {
-			show: {
-				resource: ['dataOperations'],
-				operation: ['screen'],
-			},
-		},
-	},
-	{
-		displayName: 'Batch Size',
-		name: 'batchSize',
-		type: 'number',
-		default: 10,
-		description: 'Number of rows to process in each batch',
-		displayOptions: {
-			show: {
-				resource: ['dataOperations'],
-				operation: ['screen'],
-			},
-		},
-	},
-	{
-		displayName: 'Preview Mode',
-		name: 'preview',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to process only the first few rows for testing',
+			'JSON Schema for the response format. Must include at least one boolean field to determine filtering.',
 		displayOptions: {
 			show: {
 				resource: ['dataOperations'],
@@ -81,59 +51,42 @@ export async function executeScreenOperation(
 ): Promise<IDataObject[]> {
 	const task = this.getNodeParameter('task', 0) as string;
 	const responseSchemaRaw = this.getNodeParameter('responseSchema', 0) as string;
-	const batchSize = this.getNodeParameter('batchSize', 0) as number;
-	const preview = this.getNodeParameter('preview', 0) as boolean;
-
-	// Create session
-	const session = await createSession.call(this, sessionName);
-
-	// Create input artifact from items
-	const inputArtifactId = await createTableArtifact.call(this, session.session_id, items);
-
-	// Build query params
-	const queryParams: IDataObject = {
-		task,
-		batch_size: batchSize,
-		preview,
-	};
 
 	// Parse response schema if provided
+	let responseSchema: IDataObject | undefined;
 	if (responseSchemaRaw && responseSchemaRaw.trim()) {
 		try {
-			const responseSchema = JSON.parse(responseSchemaRaw) as IDataObject;
-			queryParams.response_schema = responseSchema;
-			queryParams.response_schema_type = 'JSON';
+			responseSchema = JSON.parse(responseSchemaRaw) as IDataObject;
 		} catch (e) {
 			throw new Error(`Invalid response schema JSON: ${(e as Error).message}`);
 		}
 	}
 
-	// Build and submit screen task
-	const payload = {
-		task_type: 'deep_screen',
-		query: queryParams,
-		input_artifacts: [inputArtifactId],
-	};
+	// Create session (optional - the API will auto-create if not provided)
+	const session = await createSession.call(this, sessionName);
 
-	const taskResponse = await submitTask.call(this, session.session_id, payload);
+	// Submit screen operation directly with data
+	const operationResponse = await submitScreenOperation.call(
+		this,
+		items,
+		task,
+		responseSchema,
+		session.session_id,
+	);
 
 	// Poll for completion
-	const status = await pollTaskCompletion.call(this, taskResponse.task_id, pollInterval, maxWaitTime);
+	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
 
-	if (!status.artifact_id) {
-		throw new Error('Screen operation completed but no artifact ID was returned');
+	// Fetch results using the new result endpoint
+	const result = await getTaskResult.call(this, operationResponse.task_id);
+
+	if (!result.data) {
+		throw new Error('Screen operation completed but no data was returned');
 	}
 
-	// Fetch results
-	const artifacts = await getArtifacts.call(this, [status.artifact_id]);
-	if (artifacts.length === 0) {
-		throw new Error('No artifacts returned from screen operation');
+	// Handle both array and single object responses
+	if (Array.isArray(result.data)) {
+		return result.data;
 	}
-
-	const result = artifacts[0] as ArtifactGroupRecord;
-	if (!result.artifacts) {
-		throw new Error('Expected table result from screen operation');
-	}
-
-	return result.artifacts.map((a) => a.data);
+	return [result.data];
 }

@@ -1,0 +1,73 @@
+{
+  "name": "Everyrow Merge (Node)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Left table: Companies we want to enrich (this is the primary input)\nreturn [\n  { json: { company_name: \"OpenAI\", notes: \"Interested in partnership\" } },\n  { json: { company_name: \"Anthropic\", notes: \"Potential customer\" } },\n  { json: { company_name: \"Stripe\", notes: \"Payment provider\" } },\n  { json: { company_name: \"Databricks\", notes: \"Data platform\" } }\n];"
+      },
+      "id": "left-data",
+      "name": "Left Table (Primary)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Right table: Company details to merge in\nreturn [\n  { json: { name: \"OpenAI\", founded: 2015, headquarters: \"San Francisco\", employees: 1500 } },\n  { json: { name: \"Anthropic\", founded: 2021, headquarters: \"San Francisco\", employees: 500 } },\n  { json: { name: \"Stripe Inc.\", founded: 2010, headquarters: \"San Francisco\", employees: 8000 } },\n  { json: { name: \"Databricks Inc\", founded: 2013, headquarters: \"San Francisco\", employees: 5000 } },\n  { json: { name: \"Google\", founded: 1998, headquarters: \"Mountain View\", employees: 180000 } }\n];"
+      },
+      "id": "right-data",
+      "name": "Right Table (To Merge)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "resource": "dataOperations",
+        "operation": "merge",
+        "task": "Match companies from the left table with their corresponding entries in the right table based on company name. The names may be slightly different (e.g., 'Stripe' vs 'Stripe Inc.').",
+        "rightInputSource": "rightInput"
+      },
+      "id": "everyrow-merge",
+      "name": "Merge Tables",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [740, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          { "node": "Left Table (Primary)", "type": "main", "index": 0 },
+          { "node": "Right Table (To Merge)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Left Table (Primary)": {
+      "main": [[{ "node": "Merge Tables", "type": "main", "index": 0 }]]
+    },
+    "Right Table (To Merge)": {
+      "main": [[{ "node": "Merge Tables", "type": "main", "index": 1 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

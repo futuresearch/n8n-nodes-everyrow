@@ -1,184 +1,111 @@
-# Everyrow n8n Cloud Templates
+# Everyrow n8n Templates
 
-These workflow templates work on **n8n Cloud** (and self-hosted n8n) without installing any custom nodes. They use standard HTTP Request nodes to call the Everyrow API.
+This folder contains workflow templates for using Everyrow with n8n.
+
+## Choose Your Templates
+
+### 📦 [`self-hosted-with-extension/`](./self-hosted-with-extension/) - Recommended
+**Use these if you have the Everyrow extension installed on self-hosted n8n.**
+
+- **Simpler** - Just 3 nodes instead of 9
+- **Easier to configure** - Fill in fields in the node UI
+- **Better error handling** - Built into the node
+
+### 🌐 [`n8n-cloud-or-no-extension/`](./n8n-cloud-or-no-extension/)
+**Use these on n8n Cloud or if you don't want to install custom nodes.**
+
+- **No installation required** - Uses standard HTTP Request nodes
+- **Works everywhere** - n8n Cloud, self-hosted, any n8n instance
+- **More complex** - Manual polling and result parsing
+
+## Available Operations
+
+Both folders contain templates for:
+- **Rank** - Score and sort rows based on criteria
+- **Dedupe** - Remove duplicate rows using AI matching
+- **Screen** - Filter rows that match criteria
+- **Merge** - Join two tables using AI matching
+- **Agent Map** - Run AI research on each row
+
+---
 
 ## Prerequisites
 
-1. **Everyrow API Key** - Get one at [everyrow.io/settings/api-keys](https://everyrow.io/settings/api-keys)
+1. **Everyrow API Key** - Get one at [everyrow.io](https://everyrow.io)
 
-## Setup Instructions
+---
+
+## Setup: Node Templates
+
+### Step 1: Install the Extension
+
+See the main [README](../README.md) for installation instructions.
+
+### Step 2: Create Everyrow API Credential
+
+1. In n8n, go to **Credentials** → **Add Credential**
+2. Search for **Everyrow API**
+3. Configure:
+   - **API Key**: Your Everyrow API key
+   - **API URL**: `https://engine.futuresearch.ai/api/v0`
+4. Click **Test credential** to verify
+5. Save
+
+### Step 3: Import the Workflow
+
+1. Click **Add workflow** → **Import from file**
+2. Select a `*-node-workflow.json` file
+3. Click on the Everyrow node and select your credential
+4. Run the workflow!
+
+---
+
+## Setup: HTTP Templates
 
 ### Step 1: Create HTTP Header Auth Credential
 
 1. In n8n, go to **Credentials** → **Add Credential**
 2. Search for **Header Auth**
 3. Configure:
-   - **Name**: `Everyrow API` (use this exact name for auto-linking with imported workflows)
+   - **Name**: `Everyrow API`
    - **Header Name**: `Authorization`
    - **Header Value**: `Bearer YOUR_API_KEY_HERE`
-4. Save the credential
+4. Save
 
 ### Step 2: Import the Workflow
 
-1. In n8n, click **Add workflow** → **Import from file**
-2. Select `everyrow-rank-workflow.json`
-3. The workflow will be imported
-
-### Step 3: Select Credential on HTTP Nodes
-
-After importing, each HTTP Request node needs your credential selected:
-
-1. Click on **Create Session** node
-2. In **Credential to connect with**, select your Header Auth credential
-3. Repeat for the other HTTP nodes: Create Input Artifact, Poll Artifact Status, Re-poll Artifact, Submit Rank Task, Poll Rank Status, Re-poll Rank, Fetch Results
-
-> **Tip:** The auth type is pre-configured - you just need to pick your credential from the dropdown.
-
+1. Click **Add workflow** → **Import from file**
+2. Select a `*-http-workflow.json` file
+3. Each HTTP Request node needs your credential selected
 
 ---
 
-## Quick Start: Manual Setup
+## Operations Overview
 
-If the JSON import has issues, create the workflow manually:
+### Rank
+Score and sort rows based on criteria.
+- Input: List of items
+- Output: Items with scores, sorted
 
-### Workflow: Rank Companies by AI Relevance
+### Dedupe
+Remove duplicate rows using AI matching.
+- Input: List with potential duplicates
+- Output: Deduplicated list with metadata
 
-This workflow ranks a list of companies by their relevance to AI infrastructure.
+### Screen
+Filter rows that match criteria.
+- Input: List of items
+- Output: Filtered list (only matching items)
 
-#### Node 1: Manual Trigger
-- Type: **Manual Trigger**
-- Just click to start
+### Merge
+Join two tables using AI matching.
+- Input: Two tables (left and right)
+- Output: Merged table with matched data
 
-#### Node 2: Sample Data (Code node)
-```javascript
-// Sample data: Companies to rank by AI relevance
-const companies = [
-  { name: "OpenAI", description: "AI research company, creators of GPT models and ChatGPT" },
-  { name: "Stripe", description: "Payment processing platform for internet businesses" },
-  { name: "Anthropic", description: "AI safety company, creators of Claude" },
-  { name: "Snowflake", description: "Cloud data warehousing and analytics platform" },
-  { name: "Databricks", description: "Unified analytics platform for big data and AI" },
-  { name: "Figma", description: "Collaborative design tool for UI/UX" },
-  { name: "Scale AI", description: "Data labeling and AI infrastructure company" },
-  { name: "Notion", description: "All-in-one workspace for notes and collaboration" }
-];
-
-return companies.map(c => ({ json: c }));
-```
-
-#### Node 3: Create Session (HTTP Request)
-- **Method**: POST
-- **URL**: `https://engine.futuresearch.ai/sessions/create`
-- **Authentication**: Header Auth (your Everyrow credential)
-- **Body (JSON)**:
-```json
-{
-  "name": "n8n-rank-test"
-}
-```
-
-#### Node 4: Create Input Artifact (HTTP Request)
-- **Method**: POST
-- **URL**: `https://engine.futuresearch.ai/tasks`
-- **Authentication**: Header Auth
-- **Body (JSON)** - use expression mode:
-```javascript
-{
-  "session_id": "{{ $('Create Session').item.json.session_id }}",
-  "payload": {
-    "task_type": "create_group",
-    "query": {
-      "data_to_create": {{ JSON.stringify($('Sample Data').all().map(i => i.json)) }}
-    }
-  }
-}
-```
-
-#### Node 5: Poll Artifact Status (HTTP Request)
-- **Method**: GET
-- **URL**: `https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status`
-- **Authentication**: Header Auth
-
-#### Node 6: Artifact Ready? (IF node)
-- **Condition**: `{{ $json.status }}` equals `completed`
-- **True**: Continue to Submit Rank Task
-- **False**: Go to Wait node
-
-#### Node 7: Wait 2s (Wait node)
-- **Wait**: 2 seconds
-- **Then**: Loop back to Poll Artifact Status
-
-#### Node 8: Submit Rank Task (HTTP Request)
-- **Method**: POST
-- **URL**: `https://engine.futuresearch.ai/tasks`
-- **Authentication**: Header Auth
-- **Body (JSON)**:
-```javascript
-{
-  "session_id": "{{ $('Create Session').item.json.session_id }}",
-  "payload": {
-    "task_type": "deep_rank",
-    "query": {
-      "task": "Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.",
-      "response_schema": {
-        "_model_name": "RankResponse",
-        "score": { "type": "float", "optional": false, "description": "Relevance score from 0-100" },
-        "reasoning": { "type": "str", "optional": false, "description": "Brief explanation of the score" }
-      },
-      "field_to_sort_by": "score",
-      "ascending_order": false,
-      "preview": false
-    },
-    "input_artifacts": ["{{ $('Poll Artifact Status').item.json.artifact_id }}"],
-    "context_artifacts": []
-  }
-}
-```
-
-#### Node 9: Poll Rank Status (HTTP Request)
-- **Method**: GET
-- **URL**: `https://engine.futuresearch.ai/tasks/{{ $json.task_id }}/status`
-- **Authentication**: Header Auth
-
-#### Node 10: Rank Done? (IF node)
-- **Condition**: `{{ $json.status }}` equals `completed`
-- **True**: Continue to Fetch Results
-- **False**: Go to Wait node
-
-#### Node 11: Wait 5s (Wait node)
-- **Wait**: 5 seconds
-- **Then**: Loop back to Poll Rank Status
-
-#### Node 12: Fetch Results (HTTP Request)
-- **Method**: GET
-- **URL**: `https://engine.futuresearch.ai/artifacts?artifact_ids={{ $json.artifact_id }}`
-- **Authentication**: Header Auth
-
-#### Node 13: Parse Results (Code node)
-```javascript
-// Extract the ranked results from the artifact response
-const artifacts = $input.first().json;
-
-if (Array.isArray(artifacts) && artifacts[0]?.artifacts) {
-  return artifacts[0].artifacts.map(a => ({ json: a.data }));
-}
-
-return [{ json: { error: "Unexpected response format", raw: artifacts } }];
-```
-
----
-
-## Expected Output
-
-After running the workflow, you should see results like:
-
-| name | description | score | reasoning |
-|------|-------------|-------|-----------|
-| OpenAI | AI research company... | 95 | Core AI model developer... |
-| Anthropic | AI safety company... | 93 | Foundational AI research... |
-| Scale AI | Data labeling... | 85 | Essential AI infrastructure... |
-| Databricks | Unified analytics... | 75 | AI/ML platform... |
-| ... | ... | ... | ... |
+### Agent Map
+Run AI research on each row.
+- Input: List of items to research
+- Output: Items enriched with research results
 
 ---
 
@@ -186,78 +113,30 @@ After running the workflow, you should see results like:
 
 ### "Unauthorized" errors
 - Check your API key is correct
-- Ensure the Authorization header format is `Bearer YOUR_KEY` (with space after Bearer)
+- For HTTP templates: Ensure format is `Bearer YOUR_KEY` (with space)
 
-### Task stuck in PENDING/RUNNING
-- The AI operations can take 30-120 seconds depending on complexity
-- Increase the wait time in the Wait nodes if needed
+### "Not Found" (404) errors
+- Check the API URL is exactly: `https://engine.futuresearch.ai/api/v0`
+- No trailing slash!
 
-### "artifact_id is undefined"
-- Make sure the polling loop is working correctly
-- Check that the Create Input Artifact step completed successfully
+### Task taking too long
+- AI operations can take 30-120 seconds
+- Agent Map with high effort can take longer
+- Check the Everyrow dashboard for task status
 
 ---
 
-## Other Operations
+## API Reference
 
-You can modify the workflow to use other Everyrow operations:
+Base URL: `https://engine.futuresearch.ai/api/v0`
 
-### Dedupe
-```json
-{
-  "task_type": "dedupe",
-  "processing_mode": "transform",
-  "query": {
-    "equivalence_relation": "Two entries are duplicates if they represent the same entity..."
-  },
-  "input_artifacts": ["<artifact_id>"]
-}
-```
-
-### Screen
-```json
-{
-  "task_type": "deep_screen",
-  "query": {
-    "task": "Filter to only include companies that...",
-    "batch_size": 10,
-    "preview": false
-  },
-  "input_artifacts": ["<artifact_id>"]
-}
-```
-
-### Merge
-```json
-{
-  "task_type": "deep_merge",
-  "query": {
-    "task": "Match companies from the left table with...",
-    "preview": false
-  },
-  "input_artifacts": ["<left_artifact_id>"],
-  "context_artifacts": ["<right_artifact_id>"]
-}
-```
-
-### Agent Map
-```json
-{
-  "task_type": "agent",
-  "processing_mode": "map",
-  "query": {
-    "task": "Research each company and find...",
-    "effort_level": "low",
-    "response_schema": {
-      "_model_name": "AgentResponse",
-      "answer": { "type": "str", "description": "The research findings" }
-    },
-    "response_schema_type": "CUSTOM",
-    "is_expand": false,
-    "include_provenance_and_notes": false
-  },
-  "input_artifacts": ["<artifact_id>"],
-  "context_artifacts": [],
-  "join_with_input": true
-}
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/sessions` | POST | Create a session |
+| `/operations/rank` | POST | Submit rank operation |
+| `/operations/dedupe` | POST | Submit dedupe operation |
+| `/operations/screen` | POST | Submit screen operation |
+| `/operations/merge` | POST | Submit merge operation |
+| `/operations/agent-map` | POST | Submit agent map operation |
+| `/tasks/{id}/status` | GET | Check task status |
+| `/tasks/{id}/result` | GET | Get task results |

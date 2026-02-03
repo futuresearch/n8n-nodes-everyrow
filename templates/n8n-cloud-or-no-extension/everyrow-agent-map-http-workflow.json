@@ -1,0 +1,166 @@
+{
+  "name": "Everyrow Agent Map Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies to research\nconst companies = [\n  { name: \"OpenAI\", website: \"openai.com\" },\n  { name: \"Anthropic\", website: \"anthropic.com\" },\n  { name: \"Mistral AI\", website: \"mistral.ai\" }\n];\n\nreturn [{ json: { companies } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/api/v0/operations/agent-map",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  input: $json.companies,\n  task: \"Research this company and find their latest funding round, including the amount raised, date, and lead investors.\",\n  effort_level: \"low\",\n  join_with_input: true\n}) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "submit-agent",
+      "name": "Submit Agent Map Operation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "poll-status",
+      "name": "Poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-done",
+      "name": "Task Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Agent Map Operation').first().json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "repoll",
+      "name": "Re-poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Agent Map Operation').first().json.task_id }}/result",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the agent research results\nconst response = $input.first().json;\n\nif (response.data && Array.isArray(response.data)) {\n  return response.data.map(item => ({ json: item }));\n}\n\nif (response.data) {\n  return [{ json: response.data }];\n}\n\nreturn [{ json: { error: \"No data in response\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Submit Agent Map Operation", "type": "main", "index": 0 }]]
+    },
+    "Submit Agent Map Operation": {
+      "main": [[{ "node": "Poll Status", "type": "main", "index": 0 }]]
+    },
+    "Poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Task Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 10s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 10s": {
+      "main": [[{ "node": "Re-poll Status", "type": "main", "index": 0 }]]
+    },
+    "Re-poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Fetch Results": {
+      "main": [[{ "node": "Parse Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

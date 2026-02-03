@@ -1,0 +1,166 @@
+{
+  "name": "Everyrow Dedupe Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies with duplicates\nconst companies = [\n  { name: \"OpenAI\", description: \"AI research company\" },\n  { name: \"Open AI\", description: \"Creators of GPT and ChatGPT\" },\n  { name: \"Anthropic\", description: \"AI safety company\" },\n  { name: \"Stripe\", description: \"Payment processing platform\" },\n  { name: \"Stripe Inc\", description: \"Online payment infrastructure\" },\n  { name: \"Anthropic AI\", description: \"Creators of Claude\" },\n  { name: \"Google\", description: \"Search and cloud company\" },\n  { name: \"Alphabet/Google\", description: \"Tech conglomerate\" }\n];\n\nreturn [{ json: { companies } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/api/v0/operations/dedupe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  input: $json.companies,\n  equivalence_relation: \"Two entries are duplicates if they represent the same company, even if the name is slightly different or includes suffixes like Inc, AI, etc.\"\n}) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "submit-dedupe",
+      "name": "Submit Dedupe Operation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "poll-status",
+      "name": "Poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-done",
+      "name": "Task Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Dedupe Operation').first().json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "repoll",
+      "name": "Re-poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Dedupe Operation').first().json.task_id }}/result",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the deduplicated results\nconst response = $input.first().json;\n\nif (response.data && Array.isArray(response.data)) {\n  return response.data.map(item => ({ json: item }));\n}\n\nif (response.data) {\n  return [{ json: response.data }];\n}\n\nreturn [{ json: { error: \"No data in response\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Submit Dedupe Operation", "type": "main", "index": 0 }]]
+    },
+    "Submit Dedupe Operation": {
+      "main": [[{ "node": "Poll Status", "type": "main", "index": 0 }]]
+    },
+    "Poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Task Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 5s": {
+      "main": [[{ "node": "Re-poll Status", "type": "main", "index": 0 }]]
+    },
+    "Re-poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Fetch Results": {
+      "main": [[{ "node": "Parse Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

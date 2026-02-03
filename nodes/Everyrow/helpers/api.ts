@@ -5,26 +5,35 @@ export interface EveryrowCredentials {
 	apiUrl: string;
 }
 
-export interface CreateSessionResponse {
+export interface SessionResponse {
 	session_id: string;
 }
 
-export interface SubmitTaskResponse {
+export interface OperationResponse {
 	task_id: string;
-}
-
-export interface TaskStatusResponse {
-	status: string; // API returns lowercase: 'pending' | 'running' | 'completed' | 'failed' | 'revoked'
+	session_id: string;
+	status: string;
 	artifact_id?: string;
 	error?: string;
 }
 
-export interface ArtifactRecord {
-	data: IDataObject;
+export interface TaskStatusResponse {
+	task_id: string;
+	session_id: string;
+	status: string; // 'pending' | 'running' | 'completed' | 'failed'
+	task_type: string;
+	artifact_id?: string;
+	error?: string;
+	created_at?: string;
+	updated_at?: string;
 }
 
-export interface ArtifactGroupRecord {
-	artifacts: ArtifactRecord[];
+export interface TaskResultResponse {
+	task_id: string;
+	status: string;
+	artifact_id?: string;
+	data?: IDataObject[] | IDataObject;
+	error?: string;
 }
 
 /**
@@ -51,31 +60,150 @@ export async function everyrowApiRequest(
 }
 
 /**
- * Creates a new session in Everyrow.
+ * Creates a new session in Everyrow (optional - sessions are auto-created if not provided).
  */
 export async function createSession(
 	this: IExecuteFunctions,
 	name: string,
-): Promise<CreateSessionResponse> {
-	const response = await everyrowApiRequest.call(this, 'POST', '/sessions/create', {
+): Promise<SessionResponse> {
+	const response = await everyrowApiRequest.call(this, 'POST', '/sessions', {
 		name,
 	});
-	return response as unknown as CreateSessionResponse;
+	return response as unknown as SessionResponse;
 }
 
 /**
- * Submits a task to Everyrow.
+ * Submits a screen operation.
  */
-export async function submitTask(
+export async function submitScreenOperation(
 	this: IExecuteFunctions,
-	sessionId: string,
-	payload: IDataObject,
-): Promise<SubmitTaskResponse> {
-	const response = await everyrowApiRequest.call(this, 'POST', '/tasks', {
-		session_id: sessionId,
-		payload,
-	});
-	return response as unknown as SubmitTaskResponse;
+	input: IDataObject[],
+	task: string,
+	responseSchema?: IDataObject,
+	sessionId?: string,
+): Promise<OperationResponse> {
+	const body: IDataObject = {
+		input,
+		task,
+	};
+	if (responseSchema) {
+		body.response_schema = responseSchema;
+	}
+	if (sessionId) {
+		body.session_id = sessionId;
+	}
+	const response = await everyrowApiRequest.call(this, 'POST', '/operations/screen', body);
+	return response as unknown as OperationResponse;
+}
+
+/**
+ * Submits a rank operation.
+ */
+export async function submitRankOperation(
+	this: IExecuteFunctions,
+	input: IDataObject[],
+	task: string,
+	sortBy: string,
+	ascending: boolean,
+	responseSchema?: IDataObject,
+	sessionId?: string,
+): Promise<OperationResponse> {
+	const body: IDataObject = {
+		input,
+		task,
+		sort_by: sortBy,
+		ascending,
+	};
+	if (responseSchema) {
+		body.response_schema = responseSchema;
+	}
+	if (sessionId) {
+		body.session_id = sessionId;
+	}
+	const response = await everyrowApiRequest.call(this, 'POST', '/operations/rank', body);
+	return response as unknown as OperationResponse;
+}
+
+/**
+ * Submits a merge operation.
+ */
+export async function submitMergeOperation(
+	this: IExecuteFunctions,
+	leftInput: IDataObject[],
+	rightInput: IDataObject[],
+	task: string,
+	leftKey?: string,
+	rightKey?: string,
+	sessionId?: string,
+): Promise<OperationResponse> {
+	const body: IDataObject = {
+		left_input: leftInput,
+		right_input: rightInput,
+		task,
+	};
+	if (leftKey) {
+		body.left_key = leftKey;
+	}
+	if (rightKey) {
+		body.right_key = rightKey;
+	}
+	if (sessionId) {
+		body.session_id = sessionId;
+	}
+	const response = await everyrowApiRequest.call(this, 'POST', '/operations/merge', body);
+	return response as unknown as OperationResponse;
+}
+
+/**
+ * Submits a dedupe operation.
+ */
+export async function submitDedupeOperation(
+	this: IExecuteFunctions,
+	input: IDataObject[],
+	equivalenceRelation: string,
+	sessionId?: string,
+): Promise<OperationResponse> {
+	const body: IDataObject = {
+		input,
+		equivalence_relation: equivalenceRelation,
+	};
+	if (sessionId) {
+		body.session_id = sessionId;
+	}
+	const response = await everyrowApiRequest.call(this, 'POST', '/operations/dedupe', body);
+	return response as unknown as OperationResponse;
+}
+
+/**
+ * Submits an agent-map operation.
+ */
+export async function submitAgentMapOperation(
+	this: IExecuteFunctions,
+	input: IDataObject[],
+	task: string,
+	effortLevel: string,
+	responseSchema?: IDataObject,
+	llm?: string,
+	joinWithInput: boolean = true,
+	sessionId?: string,
+): Promise<OperationResponse> {
+	const body: IDataObject = {
+		input,
+		task,
+		effort_level: effortLevel,
+		join_with_input: joinWithInput,
+	};
+	if (responseSchema) {
+		body.response_schema = responseSchema;
+	}
+	if (llm) {
+		body.llm = llm;
+	}
+	if (sessionId) {
+		body.session_id = sessionId;
+	}
+	const response = await everyrowApiRequest.call(this, 'POST', '/operations/agent-map', body);
+	return response as unknown as OperationResponse;
 }
 
 /**
@@ -90,42 +218,12 @@ export async function getTaskStatus(
 }
 
 /**
- * Fetches artifacts by their IDs.
+ * Gets the result data of a completed task.
  */
-export async function getArtifacts(
+export async function getTaskResult(
 	this: IExecuteFunctions,
-	artifactIds: string[],
-): Promise<(ArtifactGroupRecord | ArtifactRecord)[]> {
-	const response = await everyrowApiRequest.call(this, 'GET', '/artifacts', undefined, {
-		artifact_ids: artifactIds.join(','),
-	});
-	return response as unknown as (ArtifactGroupRecord | ArtifactRecord)[];
-}
-
-/**
- * Creates a table artifact from input data.
- */
-export async function createTableArtifact(
-	this: IExecuteFunctions,
-	sessionId: string,
-	data: IDataObject[],
-): Promise<string> {
-	const payload = {
-		task_type: 'create_group',
-		query: {
-			data_to_create: data,
-		},
-	};
-
-	const response = await submitTask.call(this, sessionId, payload);
-
-	// Poll for completion and return the artifact ID
-	const { pollTaskCompletion } = await import('./polling');
-	const status = await pollTaskCompletion.call(this, response.task_id);
-
-	if (!status.artifact_id) {
-		throw new Error('Failed to create table artifact: no artifact ID returned');
-	}
-
-	return status.artifact_id;
+	taskId: string,
+): Promise<TaskResultResponse> {
+	const response = await everyrowApiRequest.call(this, 'GET', `/tasks/${taskId}/result`);
+	return response as unknown as TaskResultResponse;
 }

@@ -33,9 +33,6 @@ export async function pollTaskCompletion(
 			// Check terminal states (API returns lowercase status values)
 			const statusLower = status.status.toLowerCase();
 			if (statusLower === 'completed') {
-				if (!status.artifact_id) {
-					throw new Error(`Task ${taskId} completed but no artifact ID was returned`);
-				}
 				return status;
 			}
 

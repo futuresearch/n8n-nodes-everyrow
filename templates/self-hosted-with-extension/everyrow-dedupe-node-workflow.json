@@ -1,0 +1,54 @@
+{
+  "name": "Everyrow Dedupe (Node)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample data: Companies with duplicates\nreturn [\n  { json: { name: \"OpenAI\", description: \"AI research company\" } },\n  { json: { name: \"Open AI\", description: \"Creators of GPT and ChatGPT\" } },\n  { json: { name: \"Anthropic\", description: \"AI safety company\" } },\n  { json: { name: \"Stripe\", description: \"Payment processing platform\" } },\n  { json: { name: \"Stripe Inc\", description: \"Online payment infrastructure\" } },\n  { json: { name: \"Anthropic AI\", description: \"Creators of Claude\" } },\n  { json: { name: \"Google\", description: \"Search and cloud company\" } },\n  { json: { name: \"Alphabet/Google\", description: \"Tech conglomerate\" } }\n];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "dataOperations",
+        "operation": "dedupe",
+        "equivalenceRelation": "Two entries are duplicates if they represent the same company, even if the name is slightly different or includes suffixes like Inc, AI, etc."
+      },
+      "id": "everyrow-dedupe",
+      "name": "Dedupe Companies",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Dedupe Companies", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

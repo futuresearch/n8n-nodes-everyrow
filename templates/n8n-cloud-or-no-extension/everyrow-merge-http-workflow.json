@@ -1,0 +1,166 @@
+{
+  "name": "Everyrow Merge Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Left table: Companies we want to enrich\nconst leftTable = [\n  { company_name: \"OpenAI\", notes: \"Interested in partnership\" },\n  { company_name: \"Anthropic\", notes: \"Potential customer\" },\n  { company_name: \"Stripe\", notes: \"Payment provider\" },\n  { company_name: \"Databricks\", notes: \"Data platform\" }\n];\n\n// Right table: Company details to merge in\nconst rightTable = [\n  { name: \"OpenAI\", founded: 2015, headquarters: \"San Francisco\", employees: 1500 },\n  { name: \"Anthropic\", founded: 2021, headquarters: \"San Francisco\", employees: 500 },\n  { name: \"Stripe Inc.\", founded: 2010, headquarters: \"San Francisco\", employees: 8000 },\n  { name: \"Databricks Inc\", founded: 2013, headquarters: \"San Francisco\", employees: 5000 },\n  { name: \"Google\", founded: 1998, headquarters: \"Mountain View\", employees: 180000 }\n];\n\nreturn [{ json: { leftTable, rightTable } }];"
+      },
+      "id": "sample-data",
+      "name": "Sample Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://engine.futuresearch.ai/api/v0/operations/merge",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  left_input: $json.leftTable,\n  right_input: $json.rightTable,\n  task: \"Match companies from the left table with their corresponding entries in the right table based on company name. The names may be slightly different (e.g., 'Stripe' vs 'Stripe Inc.').\"\n}) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "submit-merge",
+      "name": "Submit Merge Operation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "poll-status",
+      "name": "Poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-done",
+      "name": "Task Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Merge Operation').first().json.task_id }}/status",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "repoll",
+      "name": "Re-poll Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://engine.futuresearch.ai/api/v0/tasks/{{ $('Submit Merge Operation').first().json.task_id }}/result",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-results",
+      "name": "Fetch Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the merged results\nconst response = $input.first().json;\n\nif (response.data && Array.isArray(response.data)) {\n  return response.data.map(item => ({ json: item }));\n}\n\nif (response.data) {\n  return [{ json: response.data }];\n}\n\nreturn [{ json: { error: \"No data in response\", raw: response } }];"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Submit Merge Operation", "type": "main", "index": 0 }]]
+    },
+    "Submit Merge Operation": {
+      "main": [[{ "node": "Poll Status", "type": "main", "index": 0 }]]
+    },
+    "Poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Task Done?": {
+      "main": [
+        [{ "node": "Fetch Results", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 5s": {
+      "main": [[{ "node": "Re-poll Status", "type": "main", "index": 0 }]]
+    },
+    "Re-poll Status": {
+      "main": [[{ "node": "Task Done?", "type": "main", "index": 0 }]]
+    },
+    "Fetch Results": {
+      "main": [[{ "node": "Parse Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

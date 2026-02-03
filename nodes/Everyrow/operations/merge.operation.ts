@@ -1,10 +1,8 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
 import {
 	createSession,
-	createTableArtifact,
-	getArtifacts,
-	submitTask,
-	type ArtifactGroupRecord,
+	getTaskResult,
+	submitMergeOperation,
 } from '../helpers/api';
 import { pollTaskCompletion } from '../helpers/polling';
 
@@ -74,39 +72,6 @@ export const mergeOperationFields: INodeProperties[] = [
 			},
 		},
 	},
-	{
-		displayName: 'LLM Model',
-		name: 'mergeModel',
-		type: 'options',
-		options: [
-			{ name: 'Claude 3.5 Haiku', value: 'claude-3-5-haiku' },
-			{ name: 'Claude 3.5 Sonnet', value: 'claude-3-5-sonnet' },
-			{ name: 'Default (Auto-Select)', value: '' },
-			{ name: 'GPT-4o', value: 'gpt-4o' },
-			{ name: 'GPT-4o Mini', value: 'gpt-4o-mini' },
-		],
-		default: '',
-		description: 'Which LLM model to use for matching',
-		displayOptions: {
-			show: {
-				resource: ['dataOperations'],
-				operation: ['merge'],
-			},
-		},
-	},
-	{
-		displayName: 'Preview Mode',
-		name: 'preview',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to process only the first few rows for testing',
-		displayOptions: {
-			show: {
-				resource: ['dataOperations'],
-				operation: ['merge'],
-			},
-		},
-	},
 ];
 
 export async function executeMergeOperation(
@@ -120,8 +85,6 @@ export async function executeMergeOperation(
 	const rightTableRaw = this.getNodeParameter('rightTable', 0) as string;
 	const mergeOnLeft = this.getNodeParameter('mergeOnLeft', 0) as string;
 	const mergeOnRight = this.getNodeParameter('mergeOnRight', 0) as string;
-	const mergeModel = this.getNodeParameter('mergeModel', 0) as string;
-	const preview = this.getNodeParameter('preview', 0) as boolean;
 
 	// Parse right table
 	let rightTable: IDataObject[];
@@ -134,56 +97,33 @@ export async function executeMergeOperation(
 		throw new Error(`Invalid right table JSON: ${(e as Error).message}`);
 	}
 
-	// Create session
+	// Create session (optional - the API will auto-create if not provided)
 	const session = await createSession.call(this, sessionName);
 
-	// Create input artifacts from both tables
-	const leftArtifactId = await createTableArtifact.call(this, session.session_id, items);
-	const rightArtifactId = await createTableArtifact.call(this, session.session_id, rightTable);
-
-	// Build query params
-	const queryParams: IDataObject = {
+	// Submit merge operation directly with data
+	const operationResponse = await submitMergeOperation.call(
+		this,
+		items,
+		rightTable,
 		task,
-		preview,
-	};
-
-	if (mergeOnLeft) {
-		queryParams.merge_on_left = mergeOnLeft;
-	}
-	if (mergeOnRight) {
-		queryParams.merge_on_right = mergeOnRight;
-	}
-	if (mergeModel) {
-		queryParams.merge_model = mergeModel;
-	}
-
-	// Build and submit merge task
-	const payload = {
-		task_type: 'deep_merge',
-		query: queryParams,
-		input_artifacts: [leftArtifactId],
-		context_artifacts: [rightArtifactId],
-	};
-
-	const taskResponse = await submitTask.call(this, session.session_id, payload);
+		mergeOnLeft || undefined,
+		mergeOnRight || undefined,
+		session.session_id,
+	);
 
 	// Poll for completion
-	const status = await pollTaskCompletion.call(this, taskResponse.task_id, pollInterval, maxWaitTime);
+	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
 
-	if (!status.artifact_id) {
-		throw new Error('Merge operation completed but no artifact ID was returned');
+	// Fetch results using the new result endpoint
+	const result = await getTaskResult.call(this, operationResponse.task_id);
+
+	if (!result.data) {
+		throw new Error('Merge operation completed but no data was returned');
 	}
 
-	// Fetch results
-	const artifacts = await getArtifacts.call(this, [status.artifact_id]);
-	if (artifacts.length === 0) {
-		throw new Error('No artifacts returned from merge operation');
+	// Handle both array and single object responses
+	if (Array.isArray(result.data)) {
+		return result.data;
 	}
-
-	const result = artifacts[0] as ArtifactGroupRecord;
-	if (!result.artifacts) {
-		throw new Error('Expected table result from merge operation');
-	}
-
-	return result.artifacts.map((a) => a.data);
+	return [result.data];
 }
