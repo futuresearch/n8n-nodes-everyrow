@@ -1,4 +1,5 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
+import { setTimeout as sleep } from 'timers/promises';
 import { getTaskStatus, type TaskStatusResponse } from './api';
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
@@ -64,12 +65,6 @@ export async function pollTaskCompletion(
 	}
 }
 
-/**
- * Sleep for the specified number of milliseconds.
- */
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 /**
  * Check if an error is a network/transient error that should be retried.

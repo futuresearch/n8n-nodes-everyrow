@@ -56,7 +56,7 @@ export async function everyrowApiRequest(
 		json: true,
 	};
 
-	return await this.helpers.requestWithAuthentication.call(this, 'everyrowApi', options);
+	return await this.helpers.httpRequestWithAuthentication.call(this, 'everyrowApi', options);
 }
 
 /**
