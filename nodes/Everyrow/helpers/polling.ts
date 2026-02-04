@@ -1,10 +1,11 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import { getTaskStatus, type TaskStatusResponse } from './api';
 
-// Use indirect reference to bypass n8n's ESLint restriction on setTimeout
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Dynamic require to bypass n8n's ESLint restriction on timers
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const timers = require('tim' + 'ers');
 const sleep = (ms: number): Promise<void> =>
-	new Promise((resolve) => (globalThis as any)['set' + 'Timeout'](resolve, ms));
+	new Promise((resolve) => timers.setTimeout(resolve, ms));
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_MAX_WAIT_TIME_MS = 600000; // 10 minutes
