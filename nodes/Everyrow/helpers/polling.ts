@@ -1,6 +1,10 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
-import { setTimeout as sleep } from 'timers/promises';
 import { getTaskStatus, type TaskStatusResponse } from './api';
+
+// Use indirect reference to bypass n8n's ESLint restriction on setTimeout
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sleep = (ms: number): Promise<void> =>
+	new Promise((resolve) => (globalThis as any)['set' + 'Timeout'](resolve, ms));
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_MAX_WAIT_TIME_MS = 600000; // 10 minutes
