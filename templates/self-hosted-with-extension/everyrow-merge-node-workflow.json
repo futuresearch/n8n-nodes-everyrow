@@ -1,5 +1,5 @@
 {
-  "name": "Everyrow Merge (Node)",
+  "name": "Everyrow Merge with Polling (Node)",
   "nodes": [
     {
       "parameters": {},
@@ -11,36 +11,103 @@
     },
     {
       "parameters": {
-        "jsCode": "// Left table: Companies we want to enrich (this is the primary input)\nreturn [\n  { json: { company_name: \"OpenAI\", notes: \"Interested in partnership\" } },\n  { json: { company_name: \"Anthropic\", notes: \"Potential customer\" } },\n  { json: { company_name: \"Stripe\", notes: \"Payment provider\" } },\n  { json: { company_name: \"Databricks\", notes: \"Data platform\" } }\n];"
+        "jsCode": "// Left table: Companies we want to enrich\nreturn [\n  { json: { company_name: \"OpenAI\", notes: \"Interested in partnership\" } },\n  { json: { company_name: \"Anthropic\", notes: \"Potential customer\" } },\n  { json: { company_name: \"Stripe\", notes: \"Payment provider\" } }\n];"
       },
-      "id": "left-data",
-      "name": "Left Table (Primary)",
+      "id": "sample-data",
+      "name": "Sample Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 200]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Right table: Company details to merge in\nreturn [\n  { json: { name: \"OpenAI\", founded: 2015, headquarters: \"San Francisco\", employees: 1500 } },\n  { json: { name: \"Anthropic\", founded: 2021, headquarters: \"San Francisco\", employees: 500 } },\n  { json: { name: \"Stripe Inc.\", founded: 2010, headquarters: \"San Francisco\", employees: 8000 } },\n  { json: { name: \"Databricks Inc\", founded: 2013, headquarters: \"San Francisco\", employees: 5000 } },\n  { json: { name: \"Google\", founded: 1998, headquarters: \"Mountain View\", employees: 180000 } }\n];"
-      },
-      "id": "right-data",
-      "name": "Right Table (To Merge)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [460, 400]
+      "position": [460, 300]
     },
     {
       "parameters": {
         "resource": "dataOperations",
         "operation": "merge",
-        "task": "Match companies from the left table with their corresponding entries in the right table based on company name. The names may be slightly different (e.g., 'Stripe' vs 'Stripe Inc.').",
-        "rightInputSource": "rightInput"
+        "task": "Match companies from the left table with their corresponding entries in the right table based on company name.",
+        "rightTable": "[{\"name\": \"OpenAI\", \"founded\": 2015, \"employees\": 1500}, {\"name\": \"Anthropic\", \"founded\": 2021, \"employees\": 500}, {\"name\": \"Stripe Inc.\", \"founded\": 2010, \"employees\": 8000}]"
       },
-      "id": "everyrow-merge",
-      "name": "Merge Tables",
+      "id": "submit-merge",
+      "name": "Submit Merge",
       "type": "n8n-nodes-everyrow.everyrow",
       "typeVersion": 1,
-      "position": [740, 300],
+      "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [900, 300],
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "getStatus",
+        "taskId": "={{ $('Submit Merge').item.json.task_id }}"
+      },
+      "id": "check-status",
+      "name": "Check Status",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "completed-check",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-completed",
+      "name": "If Completed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "getResult",
+        "taskId": "={{ $('Submit Merge').item.json.task_id }}"
+      },
+      "id": "get-result",
+      "name": "Get Result",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [1560, 200],
       "credentials": {
         "everyrowApi": {
           "id": "",
@@ -51,18 +118,25 @@
   ],
   "connections": {
     "When clicking 'Test workflow'": {
+      "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
+    },
+    "Sample Data": {
+      "main": [[{ "node": "Submit Merge", "type": "main", "index": 0 }]]
+    },
+    "Submit Merge": {
+      "main": [[{ "node": "Wait 5s", "type": "main", "index": 0 }]]
+    },
+    "Wait 5s": {
+      "main": [[{ "node": "Check Status", "type": "main", "index": 0 }]]
+    },
+    "Check Status": {
+      "main": [[{ "node": "If Completed", "type": "main", "index": 0 }]]
+    },
+    "If Completed": {
       "main": [
-        [
-          { "node": "Left Table (Primary)", "type": "main", "index": 0 },
-          { "node": "Right Table (To Merge)", "type": "main", "index": 0 }
-        ]
+        [{ "node": "Get Result", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
       ]
-    },
-    "Left Table (Primary)": {
-      "main": [[{ "node": "Merge Tables", "type": "main", "index": 0 }]]
-    },
-    "Right Table (To Merge)": {
-      "main": [[{ "node": "Merge Tables", "type": "main", "index": 1 }]]
     }
   },
   "pinData": {},

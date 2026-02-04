@@ -1,5 +1,5 @@
 {
-  "name": "Everyrow Rank (Node)",
+  "name": "Everyrow Rank with Polling (Node)",
   "nodes": [
     {
       "parameters": {},
@@ -11,7 +11,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Sample data: Companies to rank by AI relevance\nreturn [\n  { json: { name: \"OpenAI\", description: \"AI research company, creators of GPT models and ChatGPT\" } },\n  { json: { name: \"Stripe\", description: \"Payment processing platform for internet businesses\" } },\n  { json: { name: \"Anthropic\", description: \"AI safety company, creators of Claude\" } },\n  { json: { name: \"Snowflake\", description: \"Cloud data warehousing and analytics platform\" } },\n  { json: { name: \"Databricks\", description: \"Unified analytics platform for big data and AI\" } },\n  { json: { name: \"Figma\", description: \"Collaborative design tool for UI/UX\" } },\n  { json: { name: \"Scale AI\", description: \"Data labeling and AI infrastructure company\" } },\n  { json: { name: \"Notion\", description: \"All-in-one workspace for notes and collaboration\" } }\n];"
+        "jsCode": "// Sample data: Companies to rank by AI relevance\nreturn [\n  { json: { name: \"OpenAI\", description: \"AI research company, creators of GPT models\" } },\n  { json: { name: \"Stripe\", description: \"Payment processing platform\" } },\n  { json: { name: \"Anthropic\", description: \"AI safety company, creators of Claude\" } }\n];"
       },
       "id": "sample-data",
       "name": "Sample Data",
@@ -23,16 +23,93 @@
       "parameters": {
         "resource": "dataOperations",
         "operation": "rank",
-        "task": "Score each company by their relevance to AI infrastructure and foundational AI technology. Companies building core AI models, training infrastructure, or essential AI tooling should score highest.",
-        "sortBy": "score",
-        "ascending": false,
-        "responseSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"score\": { \"type\": \"number\", \"description\": \"Relevance score from 0-100\" },\n    \"reasoning\": { \"type\": \"string\", \"description\": \"Brief explanation of the score\" }\n  },\n  \"required\": [\"score\"]\n}"
+        "task": "Score each company by their relevance to AI infrastructure. Companies building core AI models should score highest.",
+        "fieldName": "score",
+        "ascendingOrder": false,
+        "responseSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"score\": { \"type\": \"number\" },\n    \"reasoning\": { \"type\": \"string\" }\n  },\n  \"required\": [\"score\"]\n}"
       },
-      "id": "everyrow-rank",
-      "name": "Rank Companies",
+      "id": "submit-rank",
+      "name": "Submit Rank",
       "type": "n8n-nodes-everyrow.everyrow",
       "typeVersion": 1,
       "position": [680, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [900, 300],
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "getStatus",
+        "taskId": "={{ $('Submit Rank').item.json.task_id }}"
+      },
+      "id": "check-status",
+      "name": "Check Status",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "everyrowApi": {
+          "id": "",
+          "name": "Everyrow API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "completed-check",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-completed",
+      "name": "If Completed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "getResult",
+        "taskId": "={{ $('Submit Rank').item.json.task_id }}"
+      },
+      "id": "get-result",
+      "name": "Get Result",
+      "type": "n8n-nodes-everyrow.everyrow",
+      "typeVersion": 1,
+      "position": [1560, 200],
       "credentials": {
         "everyrowApi": {
           "id": "",
@@ -46,7 +123,22 @@
       "main": [[{ "node": "Sample Data", "type": "main", "index": 0 }]]
     },
     "Sample Data": {
-      "main": [[{ "node": "Rank Companies", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Submit Rank", "type": "main", "index": 0 }]]
+    },
+    "Submit Rank": {
+      "main": [[{ "node": "Wait 5s", "type": "main", "index": 0 }]]
+    },
+    "Wait 5s": {
+      "main": [[{ "node": "Check Status", "type": "main", "index": 0 }]]
+    },
+    "Check Status": {
+      "main": [[{ "node": "If Completed", "type": "main", "index": 0 }]]
+    },
+    "If Completed": {
+      "main": [
+        [{ "node": "Get Result", "type": "main", "index": 0 }],
+        [{ "node": "Wait 5s", "type": "main", "index": 0 }]
+      ]
     }
   },
   "pinData": {},
