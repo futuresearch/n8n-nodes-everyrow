@@ -1,10 +1,5 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
-import {
-	createSession,
-	getTaskResult,
-	submitAgentMapOperation,
-} from '../helpers/api';
-import { pollTaskCompletion } from '../helpers/polling';
+import { createSession, submitAgentMapOperation } from '../helpers/api';
 
 export const agentMapOperationFields: INodeProperties[] = [
 	{
@@ -87,8 +82,6 @@ export async function executeAgentMapOperation(
 	this: IExecuteFunctions,
 	items: IDataObject[],
 	sessionName: string,
-	pollInterval: number,
-	maxWaitTime: number,
 ): Promise<IDataObject[]> {
 	const task = this.getNodeParameter('task', 0) as string;
 	const effortLevel = this.getNodeParameter('effortLevel', 0) as string;
@@ -105,11 +98,10 @@ export async function executeAgentMapOperation(
 		}
 	}
 
-	// Create session (optional - the API will auto-create if not provided)
+	// Create session
 	const session = await createSession.call(this, sessionName);
 
-	// Submit agent map operation directly with data
-	// Note: Not sending llm parameter - let the API use its default
+	// Submit agent map operation
 	const operationResponse = await submitAgentMapOperation.call(
 		this,
 		items,
@@ -121,19 +113,13 @@ export async function executeAgentMapOperation(
 		session.session_id,
 	);
 
-	// Poll for completion
-	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
-
-	// Fetch results using the new result endpoint
-	const result = await getTaskResult.call(this, operationResponse.task_id);
-
-	if (!result.data) {
-		throw new Error('Agent Map operation completed but no data was returned');
-	}
-
-	// Handle both array and single object responses
-	if (Array.isArray(result.data)) {
-		return result.data;
-	}
-	return [result.data];
+	// Return task info immediately (no polling)
+	return [
+		{
+			task_id: operationResponse.task_id,
+			session_id: operationResponse.session_id,
+			status: operationResponse.status,
+			operation: 'agentMap',
+		},
+	];
 }

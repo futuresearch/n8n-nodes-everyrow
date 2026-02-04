@@ -12,6 +12,11 @@ import { dedupeOperationFields, executeDedupeOperation } from './operations/dedu
 import { screenOperationFields, executeScreenOperation } from './operations/screen.operation';
 import { mergeOperationFields, executeMergeOperation } from './operations/merge.operation';
 import { agentMapOperationFields, executeAgentMapOperation } from './operations/agentMap.operation';
+import {
+	taskOperationFields,
+	executeGetStatusOperation,
+	executeGetResultOperation,
+} from './operations/task.operation';
 
 export class Everyrow implements INodeType {
 	description: INodeTypeDescription = {
@@ -50,6 +55,11 @@ export class Everyrow implements INodeType {
 						name: 'Agent Operation',
 						value: 'agentOperations',
 						description: 'AI agent operations for research and analysis',
+					},
+					{
+						name: 'Task',
+						value: 'task',
+						description: 'Check status or get results of a submitted task',
 					},
 				],
 				default: 'dataOperations',
@@ -114,36 +124,45 @@ export class Everyrow implements INodeType {
 				],
 				default: 'agentMap',
 			},
-			// Common fields
+			// Task Operations
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['task'],
+					},
+				},
+				options: [
+					{
+						name: 'Get Status',
+						value: 'getStatus',
+						description: 'Check the status of a submitted task',
+						action: 'Get task status',
+					},
+					{
+						name: 'Get Result',
+						value: 'getResult',
+						description: 'Get the result data of a completed task',
+						action: 'Get task result',
+					},
+				],
+				default: 'getStatus',
+			},
+			// Common fields for data/agent operations
 			{
 				displayName: 'Session Name',
 				name: 'sessionName',
 				type: 'string',
 				default: 'n8n-everyrow-session',
 				description: 'Name for the Everyrow session (visible in the Everyrow dashboard)',
-			},
-			{
-				displayName: 'Options',
-				name: 'options',
-				type: 'collection',
-				placeholder: 'Add Option',
-				default: {},
-				options: [
-					{
-						displayName: 'Poll Interval (Ms)',
-						name: 'pollInterval',
-						type: 'number',
-						default: 2000,
-						description: 'How often to check task status (in milliseconds)',
+				displayOptions: {
+					show: {
+						resource: ['dataOperations', 'agentOperations'],
 					},
-					{
-						displayName: 'Max Wait Time (Ms)',
-						name: 'maxWaitTime',
-						type: 'number',
-						default: 600000,
-						description: 'Maximum time to wait for task completion (in milliseconds)',
-					},
-				],
+				},
 			},
 			// Operation-specific fields
 			...rankOperationFields,
@@ -151,6 +170,7 @@ export class Everyrow implements INodeType {
 			...screenOperationFields,
 			...mergeOperationFields,
 			...agentMapOperationFields,
+			...taskOperationFields,
 		],
 	};
 
@@ -158,71 +178,50 @@ export class Everyrow implements INodeType {
 		const items = this.getInputData();
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
-		const sessionName = this.getNodeParameter('sessionName', 0) as string;
-		const options = this.getNodeParameter('options', 0) as IDataObject;
-
-		const pollInterval = (options.pollInterval as number) || 2000;
-		const maxWaitTime = (options.maxWaitTime as number) || 600000;
-
-		// Convert input items to plain objects
-		const inputData = items.map((item) => item.json);
 
 		let resultData: IDataObject[];
 
 		if (resource === 'dataOperations') {
+			const sessionName = this.getNodeParameter('sessionName', 0) as string;
+			const inputData = items.map((item) => item.json);
+
 			switch (operation) {
 				case 'rank':
-					resultData = await executeRankOperation.call(
-						this,
-						inputData,
-						sessionName,
-						pollInterval,
-						maxWaitTime,
-					);
+					resultData = await executeRankOperation.call(this, inputData, sessionName);
 					break;
 				case 'dedupe':
-					resultData = await executeDedupeOperation.call(
-						this,
-						inputData,
-						sessionName,
-						pollInterval,
-						maxWaitTime,
-					);
+					resultData = await executeDedupeOperation.call(this, inputData, sessionName);
 					break;
 				case 'screen':
-					resultData = await executeScreenOperation.call(
-						this,
-						inputData,
-						sessionName,
-						pollInterval,
-						maxWaitTime,
-					);
+					resultData = await executeScreenOperation.call(this, inputData, sessionName);
 					break;
 				case 'merge':
-					resultData = await executeMergeOperation.call(
-						this,
-						inputData,
-						sessionName,
-						pollInterval,
-						maxWaitTime,
-					);
+					resultData = await executeMergeOperation.call(this, inputData, sessionName);
 					break;
 				default:
 					throw new NodeOperationError(this.getNode(), `Unknown data operation: ${operation}`);
 			}
 		} else if (resource === 'agentOperations') {
+			const sessionName = this.getNodeParameter('sessionName', 0) as string;
+			const inputData = items.map((item) => item.json);
+
 			switch (operation) {
 				case 'agentMap':
-					resultData = await executeAgentMapOperation.call(
-						this,
-						inputData,
-						sessionName,
-						pollInterval,
-						maxWaitTime,
-					);
+					resultData = await executeAgentMapOperation.call(this, inputData, sessionName);
 					break;
 				default:
 					throw new NodeOperationError(this.getNode(), `Unknown agent operation: ${operation}`);
+			}
+		} else if (resource === 'task') {
+			switch (operation) {
+				case 'getStatus':
+					resultData = await executeGetStatusOperation.call(this);
+					break;
+				case 'getResult':
+					resultData = await executeGetResultOperation.call(this);
+					break;
+				default:
+					throw new NodeOperationError(this.getNode(), `Unknown task operation: ${operation}`);
 			}
 		} else {
 			throw new NodeOperationError(this.getNode(), `Unknown resource: ${resource}`);

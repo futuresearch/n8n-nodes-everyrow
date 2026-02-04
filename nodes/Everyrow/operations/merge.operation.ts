@@ -1,10 +1,5 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
-import {
-	createSession,
-	getTaskResult,
-	submitMergeOperation,
-} from '../helpers/api';
-import { pollTaskCompletion } from '../helpers/polling';
+import { createSession, submitMergeOperation } from '../helpers/api';
 
 export const mergeOperationFields: INodeProperties[] = [
 	{
@@ -78,8 +73,6 @@ export async function executeMergeOperation(
 	this: IExecuteFunctions,
 	items: IDataObject[],
 	sessionName: string,
-	pollInterval: number,
-	maxWaitTime: number,
 ): Promise<IDataObject[]> {
 	const task = this.getNodeParameter('task', 0) as string;
 	const rightTableRaw = this.getNodeParameter('rightTable', 0) as string;
@@ -97,10 +90,10 @@ export async function executeMergeOperation(
 		throw new Error(`Invalid right table JSON: ${(e as Error).message}`);
 	}
 
-	// Create session (optional - the API will auto-create if not provided)
+	// Create session
 	const session = await createSession.call(this, sessionName);
 
-	// Submit merge operation directly with data
+	// Submit merge operation
 	const operationResponse = await submitMergeOperation.call(
 		this,
 		items,
@@ -111,19 +104,13 @@ export async function executeMergeOperation(
 		session.session_id,
 	);
 
-	// Poll for completion
-	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
-
-	// Fetch results using the new result endpoint
-	const result = await getTaskResult.call(this, operationResponse.task_id);
-
-	if (!result.data) {
-		throw new Error('Merge operation completed but no data was returned');
-	}
-
-	// Handle both array and single object responses
-	if (Array.isArray(result.data)) {
-		return result.data;
-	}
-	return [result.data];
+	// Return task info immediately (no polling)
+	return [
+		{
+			task_id: operationResponse.task_id,
+			session_id: operationResponse.session_id,
+			status: operationResponse.status,
+			operation: 'merge',
+		},
+	];
 }

@@ -1,10 +1,5 @@
 import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
-import {
-	createSession,
-	getTaskResult,
-	submitScreenOperation,
-} from '../helpers/api';
-import { pollTaskCompletion } from '../helpers/polling';
+import { createSession, submitScreenOperation } from '../helpers/api';
 
 export const screenOperationFields: INodeProperties[] = [
 	{
@@ -46,8 +41,6 @@ export async function executeScreenOperation(
 	this: IExecuteFunctions,
 	items: IDataObject[],
 	sessionName: string,
-	pollInterval: number,
-	maxWaitTime: number,
 ): Promise<IDataObject[]> {
 	const task = this.getNodeParameter('task', 0) as string;
 	const responseSchemaRaw = this.getNodeParameter('responseSchema', 0) as string;
@@ -62,10 +55,10 @@ export async function executeScreenOperation(
 		}
 	}
 
-	// Create session (optional - the API will auto-create if not provided)
+	// Create session
 	const session = await createSession.call(this, sessionName);
 
-	// Submit screen operation directly with data
+	// Submit screen operation
 	const operationResponse = await submitScreenOperation.call(
 		this,
 		items,
@@ -74,19 +67,13 @@ export async function executeScreenOperation(
 		session.session_id,
 	);
 
-	// Poll for completion
-	await pollTaskCompletion.call(this, operationResponse.task_id, pollInterval, maxWaitTime);
-
-	// Fetch results using the new result endpoint
-	const result = await getTaskResult.call(this, operationResponse.task_id);
-
-	if (!result.data) {
-		throw new Error('Screen operation completed but no data was returned');
-	}
-
-	// Handle both array and single object responses
-	if (Array.isArray(result.data)) {
-		return result.data;
-	}
-	return [result.data];
+	// Return task info immediately (no polling)
+	return [
+		{
+			task_id: operationResponse.task_id,
+			session_id: operationResponse.session_id,
+			status: operationResponse.status,
+			operation: 'screen',
+		},
+	];
 }
