@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-everyrow",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "n8n community node for Everyrow - AI-powered data operations including ranking, deduplication, merging, screening, and agent workflows",
   "keywords": [
     "n8n-community-node-package",
