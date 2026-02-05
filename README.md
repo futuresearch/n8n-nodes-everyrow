@@ -18,7 +18,7 @@ npm install n8n-nodes-everyrow
 
 ### For n8n Cloud Users
 
-n8n Cloud doesn't support custom community nodes. Use our **HTTP Request workflow templates** instead - see [`templates/n8n-cloud-or-no-extension/`](templates/n8n-cloud-or-no-extension/) for ready-to-import workflows that work on any n8n instance without installing custom nodes.
+Once this node is verified, it will be available directly in n8n Cloud. Until then, you can use our **HTTP Request workflow templates** - see [`templates/n8n-cloud-or-no-extension/`](templates/n8n-cloud-or-no-extension/) for ready-to-import workflows that work on any n8n instance without installing custom nodes.
 
 ## Local Development Setup
 
@@ -78,6 +78,8 @@ Open http://localhost:5678 in your browser.
 
 ### Step 6: Create a Test Workflow
 
+Import a template from [`templates/self-hosted-with-extension/`](templates/self-hosted-with-extension/) or build manually:
+
 1. Click **Add Workflow**
 2. Add a **Manual Trigger** node
 3. Add a **Code** node with sample data:
@@ -92,9 +94,15 @@ Open http://localhost:5678 in your browser.
 4. Add the **Everyrow** node:
    - Select **Data Operations** → **Rank**
    - Task: "Score by AI relevance, 0-100"
-   - Response Schema: `{"score": {"type": "float"}, "reason": {"type": "str"}}`
-   - Sort Field: `score`
-5. Connect the nodes and click **Test Workflow**
+   - Field Name: `score`
+5. Add a **Wait** node (5 seconds)
+6. Add another **Everyrow** node:
+   - Select **Task** → **Get Status**
+   - Task ID: `{{ $('Everyrow').item.json.task_id }}`
+7. Add an **If** node to check `{{ $json.status }} equals "completed"`
+8. On true branch, add **Everyrow** → **Task** → **Get Result**
+9. On false branch, loop back to the Wait node
+10. Connect the nodes and click **Test Workflow**
 
 ### Running Tests
 
@@ -153,6 +161,15 @@ pnpm test         # Run tests (requires .env with API key)
 |-----------|-------------|
 | **Agent Map** | Run an AI research agent on each row to enrich data with web research, analysis, or complex reasoning. |
 
+### Task Operations
+
+| Operation | Description |
+|-----------|-------------|
+| **Get Status** | Check the status of a submitted task (pending, running, completed, failed). |
+| **Get Result** | Retrieve the results of a completed task. |
+
+> **Note:** All operations return a `task_id` immediately. Use the Task operations with a polling loop to wait for completion and retrieve results. See the [workflow templates](templates/) for examples.
+
 ## Credentials
 
 To use this node, you need an Everyrow API key:
@@ -164,40 +181,60 @@ To use this node, you need an Everyrow API key:
 
 ## Example Workflows
 
+Ready-to-import workflow templates are available in the [`templates/`](templates/) directory.
+
 ### Rank Companies by AI Relevance
 
+```
+[Data Source] → [Everyrow: Rank] → [Wait 5s] → [Everyrow: Get Status] → [If Completed?]
+                                                                              ↓ Yes
+                                                                    [Everyrow: Get Result]
+                                                                              ↓ No
+                                                                    [Loop back to Wait]
+```
+
 1. Add a data source node (Google Sheets, Airtable, etc.)
-2. Add the Everyrow node with "Rank" operation
+2. Add the Everyrow node with **Data Operations → Rank**
 3. Set the task: "Score each company by their relevance to enterprise AI infrastructure"
-4. Configure the field name and type for the score
-5. Connect to your destination
+4. Add a Wait node, then poll with **Task → Get Status**
+5. Use an If node to check if `status == "completed"`
+6. Get results with **Task → Get Result**
 
 ### Deduplicate a Contact List
 
 1. Import your contact list
-2. Add the Everyrow node with "Dedupe" operation
+2. Add the Everyrow node with **Data Operations → Dedupe**
 3. Set the equivalence relation: "Two contacts are duplicates if they represent the same person, even if names are spelled differently or companies have changed"
-4. Output the deduplicated list
+4. Add the polling loop (Wait → Get Status → If → Get Result)
+5. Output the deduplicated list
 
 ### Research and Enrich Data
 
 1. Add your data source
-2. Add the Everyrow node with "Agent Map" operation
+2. Add the Everyrow node with **Agent Operations → Agent Map**
 3. Set the task: "Research each company and find their latest funding round, founding year, and key products"
 4. Define the response schema with the fields you want
-5. Get enriched data with AI-researched information
+5. Add the polling loop to wait for completion
+6. Get enriched data with AI-researched information
 
-## Configuration Options
+## Workflow Pattern
 
-### Common Options
+Everyrow operations are asynchronous. The recommended workflow pattern is:
+
+1. **Submit Operation** - Returns a `task_id` immediately
+2. **Wait** - Use n8n's Wait node (e.g., 5-10 seconds)
+3. **Check Status** - Use Task → Get Status to poll
+4. **Loop or Continue** - If not completed, loop back to Wait; if completed, continue
+5. **Get Results** - Use Task → Get Result to retrieve data
+
+See [`templates/self-hosted-with-extension/`](templates/self-hosted-with-extension/) for complete workflow examples.
+
+### Configuration Options
 
 - **Session Name**: Name for the Everyrow session (visible in dashboard)
-- **Poll Interval**: How often to check task status (default: 2000ms)
-- **Max Wait Time**: Maximum time to wait for completion (default: 600000ms / 10 min)
+- **Task ID**: Reference to a previously submitted task (for Get Status / Get Result)
 
-### Operation-Specific Options
-
-Each operation has specific configuration options. See the node UI for details.
+Each operation has specific configuration options - see the node UI for details.
 
 ## Resources
 
